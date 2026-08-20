@@ -42,3 +42,10 @@ Present on day one and not in any documentation: `pr-link` (438),
 `atis-latch` (225), `frame-link` (20), `artifact-comment-monitor` (3). They are
 counted in `record_types` with `known = 0`. Check that table after any Claude
 Code update — it is the drift alarm.
+
+## `test.sh` must prefer `.venv/bin` over `PATH`
+
+Unlike the sibling projects, this one does not run inside a container, so bare
+`ruff` and `pytest` resolve to whatever the shell happens to have — usually
+nothing. The script checks `.venv/bin` first and fails with the venv-creation
+command rather than a bare "command not found".
