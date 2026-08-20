@@ -20,6 +20,10 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ### Fixed
 
+- `test.sh` prefers `.venv/bin` over `PATH`. Unlike the sibling projects this one
+  does not run inside a container, so bare `ruff` and `pytest` resolve to
+  whatever the shell happens to have — usually nothing. It now fails with the
+  venv-creation command instead of "command not found".
 - Subagent transcripts are found. They live one directory deeper than main
   sessions, and the hand-written analysis that motivated this project dropped
   4 of 22 files by globbing two levels. See `docs/disproven.md`.
