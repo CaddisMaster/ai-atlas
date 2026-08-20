@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.db
+*.db-wal
+*.db-shm
+
+# Never commit anything read out of ~/.claude. Transcripts contain source code,
+# credentials in shell output, and — via the sibling projects — employer data.
+# See SECURITY.md.
+/scratch/
+/exports/

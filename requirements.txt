@@ -1,0 +1,5 @@
+# Runtime dependencies.
+#
+# There are none yet, and that is deliberate: ingest is stdlib-only so that
+# `python -m atlas ingest` works on a clean checkout with no install step.
+# Flask and the web UI arrive in a later milestone.
