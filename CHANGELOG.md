@@ -6,6 +6,41 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Added — milestone 3, handoff
+
+- `python -m atlas handoff` checks a status document against the repository and
+  reports what has gone stale. Seven checks, every one of them deterministic:
+  the as-of date against the last commit, roadmap rows against the changelog's
+  `[Unreleased]` milestones, the newest release tag against whether the document
+  mentions it, `N tests` against `pytest --collect-only`, relative links against
+  the filesystem, code committed since the changelog was last touched, and open
+  pull requests with `--github`.
+- Findings carry `file:line`, so a reader can overrule one without re-deriving
+  it, and are stored in `handoff_snap` / `handoff_findings` — "this has been
+  wrong since Tuesday" is a question with an answer now.
+- A check whose evidence could not be gathered reports `unknown`, never `ok` or
+  `stale`. Missing pytest is not a test count that disagrees, and a directory
+  that is not a git repository produces one honest unknown rather than seven
+  confident findings.
+- `--github` is the only network call in ai-atlas: opt-in per run, sends a
+  repository name, sends nothing read out of `~/.claude`. `SECURITY.md`
+  guarantee 1 is restated to name the data rather than the socket. See
+  `docs/decisions/0005`.
+- 12 more tests, including regressions for both defects found by pointing the
+  new checks at a repository that was not written for them.
+
+### Fixed — found on real data, before release
+
+- Release tags of the form `v0.8.0` parsed as no version at all: `\b` does not
+  match between `v` and a digit, so the version check crashed on the first
+  repository with tags. This repository has none.
+- A dependency's version is no longer compared against a git tag. The check
+  compared PostgreSQL 10.15.0 with `v0.8.0` and called the document stale; it
+  now asks only whether the document mentions the newest tag on the repository
+  it is checking.
+- A per-file test count (`` `tests/test_x.py` (10 tests) ``) is no longer read as
+  a claim about the whole repository.
+
 ### Added — milestone 2, config resolution
 
 - `python -m atlas config` resolves configuration across **six scopes** —

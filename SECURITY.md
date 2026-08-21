@@ -15,8 +15,14 @@ That is not an overstatement, and the design follows from it.
 
 ## The guarantees
 
-1. **Nothing is transmitted.** ai-atlas makes no outbound network calls. There
-   is no telemetry, no crash reporting, and no "anonymous usage statistics".
+1. **Nothing read out of `~/.claude` leaves the machine.** No telemetry, no
+   crash reporting, no "anonymous usage statistics". Everything is offline by
+   default.
+   The single exception is `atlas handoff --github`, which is opt-in per
+   invocation and shells out to `gh` to ask which of your own pull requests are
+   open. It sends a repository name, using credentials you already have. It
+   sends no file contents and nothing from any transcript. See
+   `docs/decisions/0005`.
 2. **Nothing in `~/.claude` is written to.** Every access is read-only. The
    application has its own database elsewhere and never modifies the source.
 3. **The database is local.** `~/.local/share/ai-atlas/atlas.db` by default.

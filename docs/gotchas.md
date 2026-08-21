@@ -82,3 +82,26 @@ path is exercised by fixtures only. See `tests/conftest.py`.
 
 Every skill file is called `SKILL.md`, so `path.stem` names all of them "SKILL".
 The name is the parent directory's.
+
+## `\b` does not match between `v` and `0`
+
+`v0.8.0` contains no word boundary before the digit, so `\b(\d+)\.` finds
+nothing in it and every release tag on the sibling project parsed as *no version
+at all* — then `max()` raised on the empty list. This repository has no tags, so
+the check passed its own tests and crashed on the first real repository it saw.
+
+Use `(?<![\w.])v?(\d+)\.(\d+)\.(\d+)(?![\w.])`. Guarded by
+`test_a_v_prefixed_tag_is_still_a_version`.
+
+## A per-file test count is not a repository total
+
+`` `tests/test_design_system.py` (10 tests) `` is a claim about one file. Compared
+against what pytest collects for the whole repository, it reads as a
+contradiction that is not there — and a staleness check that invents findings
+gets switched off, which is worse than not having one. Lines naming a file are
+skipped.
+
+The same applies to versions: a status document mentions the versions of what it
+depends on, and the first run of the version check compared PostgreSQL 10.15.0
+against a git tag. The only comparable version is one that exists as a tag on
+the repository being checked.

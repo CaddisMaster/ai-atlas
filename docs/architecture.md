@@ -49,6 +49,8 @@ session is safe to read at any moment.
 | `config_scopes` | every place looked, and what was found there |
 | `config_items` | agents, commands, skills, hooks, settings, memory, mcp |
 | `rules` | permission rules, split into tool and argument |
+| `handoff_snap` | one reconciliation of a status document against its repo |
+| `handoff_findings` | what was claimed, what was true, and where |
 
 Not yet built: `edits`, `classifications`, `interventions`. See `status.md`.
 
@@ -76,6 +78,21 @@ See `decisions/0004`.
 Which project a session ran in comes from the `cwd` on its records: the
 directory name under `projects/` is a lossy encoding and is matched, never
 decoded. See `gotchas.md`.
+
+## Handoff
+
+```
+docs/status.md ──claims──▶  date · milestones · versions · test count · links
+                                    │
+git · CHANGELOG.md · pytest ──facts──┘  →  stale | ok | unknown, each with a line ref
+```
+
+Every check counts or compares; none of them judge. A check whose evidence
+could not be gathered reports `unknown` — pytest missing is not a test count
+that disagrees. Findings carry `file:line` so the reader can overrule them.
+
+`--github` adds open pull requests and is the only network call in the project.
+Offline by default; see `decisions/0005`.
 
 ## What is deliberately absent
 
