@@ -8,6 +8,9 @@ from pathlib import Path
 from . import PARSER_VERSION, __version__
 from .config import UNKNOWN, resolve, save
 from .db import connect
+from .handoff import STALE
+from .handoff import run as handoff_run
+from .handoff import save as handoff_save
 from .ingest import ingest
 from .paths import claude_home
 
@@ -175,6 +178,44 @@ def cmd_config(args) -> int:
     return 0
 
 
+def cmd_handoff(args) -> int:
+    """What the status document claims, and what the repository says."""
+    report = handoff_run(args.repo or Path.cwd(), status=args.status, github=args.github)
+
+    if args.json:
+        print(json.dumps({
+            "repo": str(report.repo),
+            "status_path": str(report.status_path) if report.status_path else None,
+            "head": report.head,
+            "findings": [vars(f) for f in report.findings],
+        }, indent=2))
+    else:
+        print(f"repo     {report.repo}")
+        print(f"status   {report.status_path or '—'}")
+        shown = report.findings if args.all else [
+            f for f in report.findings if f.state != "ok"]
+        if not shown:
+            print(f"\n✅ nothing contradicts the status document ({len(report.findings)} checks)")
+        for f in sorted(shown, key=lambda f: (f.state != STALE, f.check)):
+            mark = "⚠️ " if f.state == STALE else ("· " if f.state == "ok" else "?  ")
+            print(f"\n{mark}{f.check}  {f.subject}")
+            print(f"     claims  {f.claim}")
+            print(f"     reality {f.actual}")
+            if f.source:
+                print(f"     at      {f.source}")
+        if not args.github:
+            print("\nnot checked: open pull requests and issues "
+                  "(pass --github; it is the one call that leaves the machine)")
+
+    if not args.no_save:
+        conn = connect(args.db)
+        snap_id, is_new = handoff_save(conn, report)
+        if not args.json:
+            print(f"\nrun {snap_id}" + ("" if is_new else " (unchanged since the last run)"))
+
+    return 1 if (args.strict and report.stale) else 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="atlas", description="Measure how you work with Claude Code.")
     p.add_argument("--version", action="version", version=f"ai-atlas {__version__} (parser v{PARSER_VERSION})")
@@ -190,6 +231,17 @@ def main(argv=None) -> int:
     cfg.add_argument("--verbose", action="store_true", help="show kinds with nothing configured")
     cfg.add_argument("--no-save", action="store_true", help="do not store a snapshot")
     cfg.set_defaults(fn=cmd_config)
+
+    ho = sub.add_parser("handoff", help="check the status document against the repository")
+    ho.add_argument("repo", nargs="?", type=Path, help="repository (default: cwd)")
+    ho.add_argument("--status", type=Path, help="status document (default: docs/status.md)")
+    ho.add_argument("--github", action="store_true",
+                    help="also check open PRs — the only network call in ai-atlas")
+    ho.add_argument("--all", action="store_true", help="show checks that passed too")
+    ho.add_argument("--json", action="store_true", help="findings as JSON")
+    ho.add_argument("--strict", action="store_true", help="exit 1 when anything is stale")
+    ho.add_argument("--no-save", action="store_true", help="do not store the run")
+    ho.set_defaults(fn=cmd_handoff)
 
     args = p.parse_args(argv)
     return args.fn(args)

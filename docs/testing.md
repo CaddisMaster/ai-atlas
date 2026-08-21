@@ -7,7 +7,7 @@
 
 ## What the tests are for
 
-Twenty-seven tests. The ones that matter most are regressions for wrong answers
+Thirty-nine tests. The ones that matter most are regressions for wrong answers
 found by running against **real data** rather than by reasoning about it:
 
 - `test_project_scope_is_not_missed_by_a_user_scope_read` — the false claim that
@@ -17,6 +17,10 @@ found by running against **real data** rather than by reasoning about it:
   dropped 4 of 22 files.
 - `test_subagent_identity_comes_from_the_path_not_the_record` — the parent's
   `sessionId` appearing inside a subagent transcript.
+- `test_a_v_prefixed_tag_is_still_a_version` and
+  `test_a_dependency_version_is_not_compared_against_a_tag` — both found by
+  pointing `handoff` at the sibling project, one a crash and one a false
+  "stale". This repository could not have found either: it has no tags.
 
 Another, `test_appended_lines_cost_only_the_new_bytes`, failed on its first run
 and exposed a genuine defect: the watermark's prefix hash covered a fixed 4 KB
@@ -43,6 +47,10 @@ data behind it, which is worth knowing when it eventually misbehaves.
 
 Ingest against a transcript that is actively being written. The partial-line
 path is covered synthetically, but not under a real concurrent writer.
+
+`handoff --github`. It is the one code path that needs the network, so it is
+the one path the test suite cannot exercise. Everything it does offline is
+tested; the `gh` call itself is not.
 
 Enterprise managed policy with actual content. No such file exists on this
 machine, so the tests cover "unreadable" and "absent" but never a policy whose

@@ -28,15 +28,16 @@ somebody asks.
 
 ## What it does
 
-- **Handoff** — checks `docs/status.md` against git, issues, changelog and open
-  PRs, and reports what has gone stale.
+- **Handoff** — checks `docs/status.md` against git, the changelog, the test
+  collector and the filesystem, and reports what has gone stale. Open PRs too,
+  with `--github`, which is the only thing here that touches the network.
 - **Patterns** — finds work you repeat by hand and proposes the artifact that
   captures it: a slash command, a rule, a permission, a subagent, a hook.
 - **Interventions** — every change you make to how you work gets a before and
   an after, and is kept or discarded on the numbers.
 - **Now** — watches the running session and says when it is going backwards.
 
-Ingest and config resolution exist today. See [docs/status.md](docs/status.md).
+Ingest, config resolution and handoff exist today. See [docs/status.md](docs/status.md).
 
 ## Quick start
 
@@ -45,6 +46,7 @@ python -m atlas ingest    # read new transcript content
 python -m atlas stats     # summarise what has been ingested
 python -m atlas config    # what is configured here, and which scope it came from
 python -m atlas config --all
+python -m atlas handoff   # what docs/status.md claims that the repo contradicts
 ```
 
 No dependencies and no install step — ingest is stdlib-only and SQLite ships

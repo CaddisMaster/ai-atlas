@@ -15,6 +15,7 @@ or when reversing it would break something non-obvious.
 | [0002](0002-sqlite-not-postgres.md) | SQLite, not Postgres | A container between a stranger and their first number is fatal |
 | [0003](0003-filesystem-is-the-source-of-truth.md) | The filesystem is the source of truth | Hooks are a doorbell, never a delivery mechanism |
 | [0004](0004-a-scope-we-cannot-read-is-unknown.md) | A scope we cannot read is unknown | Absent, refused and malformed are three answers, not one |
+| [0005](0005-offline-by-default-github-is-opt-in.md) | Offline by default, GitHub opt-in | The promise is about the data, not the socket |
 
 ## Format
 

@@ -118,3 +118,27 @@ CREATE TABLE IF NOT EXISTS rules (
     PRIMARY KEY (snap_id, scope, action, pattern, source_path)
 );
 CREATE INDEX IF NOT EXISTS idx_rules_tool ON rules(tool);
+
+-- Handoff runs: what the status document claimed, and what the repository said.
+-- Kept as history so "this has been wrong since Tuesday" is answerable.
+
+CREATE TABLE IF NOT EXISTS handoff_snap (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    taken           TEXT NOT NULL,
+    repo            TEXT NOT NULL,
+    head            TEXT,
+    status_path     TEXT,
+    fingerprint     TEXT NOT NULL,
+    parser_version  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS handoff_findings (
+    snap_id     INTEGER NOT NULL REFERENCES handoff_snap(id),
+    check_name  TEXT NOT NULL,
+    subject     TEXT NOT NULL,
+    claim       TEXT,
+    actual      TEXT,
+    state       TEXT NOT NULL CHECK (state IN ('stale', 'ok', 'unknown')),
+    source      TEXT,
+    PRIMARY KEY (snap_id, check_name, subject, source)
+);

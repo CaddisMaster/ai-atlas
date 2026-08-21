@@ -22,8 +22,10 @@ keeps a durable record, and answers *did that change actually help?*
 
 1. **Read-only against `~/.claude`.** Never write to it, never move it, never
    clean it up. It is somebody's irreplaceable history.
-2. **Nothing is transmitted.** No network calls until the model layer lands, and
-   then only under the constraints in SECURITY.md.
+2. **Nothing read out of `~/.claude` is transmitted.** Offline by default. The
+   one exception is `handoff --github`, opt-in per run, which sends a repository
+   name to GitHub and nothing else — see `docs/decisions/0005`. Any new network
+   call gets the same treatment or does not land.
 3. **Detection is deterministic; drafting may use a model; the final artifact is
    the human's.** A pattern can be *found* by counting. A skill worth having
    contains knowledge that is not in any transcript.
@@ -59,5 +61,4 @@ Run `/wrap`. It carries the sequence and the traps.
 
 ## Current status
 
-Ingest and config resolution work. Nothing else exists yet. See
-[docs/status.md](docs/status.md).
+Ingest, config resolution and handoff work. See [docs/status.md](docs/status.md).
