@@ -189,6 +189,27 @@ the screen states facts, places them, and names what it placed them against.
 `Placement` has no field for a score or a severity — a field that does not exist
 cannot be printed by accident. See `decisions/0009`.
 
+## Apply
+
+```
+proposal ──▶ load settings.json ──▶ change in memory ──▶ unified diff ──▶ shown
+                                                                       │
+                            refuse (default)  ◀────────────────────────┤
+                                                                       ▼ --yes
+                       backup (beside the database) ──▶ temp file ──▶ rename
+                                                                       ▼
+                                        intervention recorded, dated today
+```
+
+The only module that writes. Project scope is the default and cannot resolve
+inside `~/.claude`; user scope is opt-in and accepts exactly one path,
+`~/.claude/settings.json`. Paths are resolved before they are checked, because a
+symlink otherwise passes every check made on the path as written. See
+`decisions/0010`.
+
+Applying records an intervention, which is what closes the loop: a change made
+through this tool is measurable by it afterwards.
+
 ## What is deliberately absent
 
 **No server, no container, no Postgres.** The product only works if a stranger
