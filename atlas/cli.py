@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from . import PARSER_VERSION, __version__
+from .apply import Refused, add_command, add_hook, add_rule, write
 from .baseline import ESTABLISHED, FLOOR
 from .baseline import build as baseline_build
 from .baseline import save as baseline_save
@@ -517,6 +518,55 @@ def cmd_now(args) -> int:
                       args.within)
 
 
+def cmd_apply(args) -> int:
+    """Write one proposal into a settings file. Refusing is the default."""
+    conn = connect(args.db)
+    target = _target(conn, args.project) if args.project or args.scope == "project" else None
+    if args.scope == "project" and target is None:
+        return 1
+
+    try:
+        if args.rule:
+            change = add_rule(target, args.rule, action=args.action, scope=args.scope)
+        elif args.hook:
+            if not args.run:
+                print("--hook needs --run '<command>'", file=sys.stderr)
+                return 1
+            change = add_hook(target, args.hook, args.run, matcher=args.matcher or "",
+                              scope=args.scope)
+        elif args.command:
+            change = add_command(target, args.command, args.steps or [],
+                                 description=args.description or "")
+        else:
+            print("nothing to apply — pass --rule, --hook or --command", file=sys.stderr)
+            return 1
+    except Refused as refusal:
+        print(f"refused: {refusal}", file=sys.stderr)
+        return 2
+
+    print(f"file    {change.path}")
+    print(f"scope   {change.scope}")
+    print(f"change  {change.kind}: {change.what}")
+
+    if change.already:
+        print("\nalready there — nothing to do")
+        return 0
+
+    print()
+    print(change.diff or "(new file)\n" + change.after)
+
+    if not args.yes:
+        print("nothing written. Re-run with --yes to apply.")
+        return 0
+
+    backup, intervention_id = write(conn, change)
+    print(f"written. backup: {backup or 'none (new file)'}")
+    if intervention_id:
+        print(f"recorded as intervention #{intervention_id}, dated now — "
+              "`atlas intervention list` will measure it once enough sessions accumulate")
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="atlas", description="Measure how you work with Claude Code.")
     p.add_argument("--version", action="version", version=f"ai-atlas {__version__} (parser v{PARSER_VERSION})")
@@ -579,6 +629,22 @@ def main(argv=None) -> int:
     nw.add_argument("--within", type=int, default=LIVE_WINDOW_MINUTES,
                     help=f"minutes since the last write to count as live (default {LIVE_WINDOW_MINUTES})")
     nw.set_defaults(fn=cmd_now)
+
+    ap = sub.add_parser("apply", help="write a proposal into a settings file, after showing the diff")
+    ap.add_argument("project", nargs="?", help="project directory, or part of a known path")
+    ap.add_argument("--scope", default="project", choices=("project", "user"),
+                    help="project writes <project>/.claude/settings.json (default); "
+                         "user writes ~/.claude/settings.json and nothing else")
+    ap.add_argument("--rule", help="a permission rule, e.g. 'Bash(grep:*)'")
+    ap.add_argument("--action", default="allow", choices=("allow", "deny", "ask"))
+    ap.add_argument("--hook", help="hook event, e.g. Stop")
+    ap.add_argument("--run", help="command the hook runs")
+    ap.add_argument("--matcher", help="hook matcher, if the event takes one")
+    ap.add_argument("--command", help="slash command name — writes a stub to fill in")
+    ap.add_argument("--steps", nargs="*", help="the observed sequence, for the stub")
+    ap.add_argument("--description", help="one line for the stub's front matter")
+    ap.add_argument("--yes", action="store_true", help="actually write it")
+    ap.set_defaults(fn=cmd_apply)
 
     args = p.parse_args(argv)
     return args.fn(args)

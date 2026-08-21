@@ -54,7 +54,14 @@ python -m atlas patterns  # work that repeats, and the artifact that would captu
 python -m atlas intervention detect   # changes to how you work, found in config and file times
 python -m atlas intervention list     # ...and whether the numbers moved
 python -m atlas now --watch 5         # what the session being written is doing
+python -m atlas apply <project> --rule 'Bash(rg:*)'          # shows the diff, writes nothing
+python -m atlas apply <project> --rule 'Bash(rg:*)' --yes    # ...and now writes it
 ```
+
+`apply` is the only thing here that writes. Project scope is the default and
+cannot resolve inside `~/.claude`; the user settings file is opt-in by name and
+is the only file under `~/.claude` this tool will ever touch. Backups are kept
+outside it. See [SECURITY.md](SECURITY.md).
 
 No dependencies and no install step — ingest is stdlib-only and SQLite ships
 with Python. The database lands at `~/.local/share/ai-atlas/atlas.db`; override

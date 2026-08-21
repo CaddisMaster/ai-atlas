@@ -236,3 +236,21 @@ mtimes with `os.utime` rather than relying on the order the fixture wrote them.
 So the live session is found on the filesystem by mtime, never by querying the
 database. This is `decisions/0003` again, in the one place where a database
 lookup would have looked obviously simpler.
+
+## `json.dumps` escapes every em dash
+
+Adding one permission rule to the real `~/.claude/settings.json` produced a
+thirty-line diff, because `ensure_ascii=True` is the default and that file is
+full of prose somebody wrote. The rule being added was three lines; the rest was
+`—` becoming `\u2014` throughout.
+
+A tool that edits configuration cannot mangle the parts it was not asked to
+touch and be trusted with it again. `ensure_ascii=False`, and a test asserts a
+one-rule change is a small diff.
+
+## A symlinked settings file escapes every check made on the path as written
+
+`<project>/.claude/settings.json` can be a symlink into `~/.claude/projects/…`,
+and every "is this inside the project?" test passes while the write lands in a
+transcript directory. Resolve first, then check. Guarded by
+`test_a_symlink_out_of_the_project_is_refused`.

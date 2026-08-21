@@ -20,8 +20,12 @@ keeps a durable record, and answers *did that change actually help?*
 
 ## Non-negotiables
 
-1. **Read-only against `~/.claude`.** Never write to it, never move it, never
-   clean it up. It is somebody's irreplaceable history.
+1. **The record in `~/.claude` is read-only.** Transcripts, `history.jsonl`,
+   `file-history/` and plugin state are never written, moved or cleaned up, and
+   no flag changes that. They are somebody's irreplaceable history.
+   Exactly one file is writable, and only when asked for by name:
+   `~/.claude/settings.json`, via `apply --scope user`. Configuration is not the
+   record. See [decisions/0010](docs/decisions/0010-writing-is-narrowed-not-excepted.md).
 2. **Nothing read out of `~/.claude` is transmitted.** Offline by default. The
    one exception is `handoff --github`, opt-in per run, which sends a repository
    name to GitHub and nothing else — see `docs/decisions/0005`. Any new network
@@ -61,5 +65,5 @@ Run `/wrap`. It carries the sequence and the traps.
 
 ## Current status
 
-Milestones 1–7 work: ingest, config, handoff, baselines, patterns,
-interventions, now. See [docs/status.md](docs/status.md).
+Milestones 1–8 work: ingest, config, handoff, baselines, patterns,
+interventions, now, apply. See [docs/status.md](docs/status.md).

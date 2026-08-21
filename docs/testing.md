@@ -7,7 +7,7 @@
 
 ## What the tests are for
 
-One hundred and thirteen tests. The ones that matter most are regressions for wrong answers
+One hundred and twenty-eight tests. The ones that matter most are regressions for wrong answers
 found by running against **real data** rather than by reasoning about it:
 
 - `test_project_scope_is_not_missed_by_a_user_scope_read` — the false claim that
@@ -27,6 +27,11 @@ and exposed a genuine defect: the watermark's prefix hash covered a fixed 4 KB
 window, so any file smaller than that invalidated its own watermark on every
 append. That is the whole argument for writing the acceptance test before
 believing the implementation.
+
+The apply tests are almost entirely refusals — a symlink out of the project,
+any path under `~/.claude` that is not `settings.json`, a malformed file, a
+command name that is a path traversal. It is the only module that writes, so
+what it declines to do is the specification.
 
 `test_ingest_keeps_up_with_a_live_writer` closes the gap this file has listed
 since milestone 1. A thread appends records **in fragments**, so the transcript

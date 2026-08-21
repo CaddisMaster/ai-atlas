@@ -23,8 +23,16 @@ That is not an overstatement, and the design follows from it.
    open. It sends a repository name, using credentials you already have. It
    sends no file contents and nothing from any transcript. See
    `docs/decisions/0005`.
-2. **Nothing in `~/.claude` is written to.** Every access is read-only. The
+2. **The record in `~/.claude` is never written to.** Transcripts,
+   `history.jsonl`, `file-history/` and plugin state are read-only, always. The
    application has its own database elsewhere and never modifies the source.
+   `atlas apply` writes configuration, and only ever two things: a project's own
+   `.claude/settings.json` (the default, outside `~/.claude` entirely), or —
+   asked for by name with `--scope user` — `~/.claude/settings.json`. Any other
+   path under `~/.claude` is refused, paths are resolved before they are checked
+   so a symlink cannot smuggle one past, nothing is written without the diff
+   being shown and confirmed, and a backup is kept **outside** `~/.claude` first.
+   See `docs/decisions/0010`.
 3. **The database is local.** `~/.local/share/ai-atlas/atlas.db` by default.
    It is as sensitive as the transcripts it was built from — back it up with
    the same care, or not at all.

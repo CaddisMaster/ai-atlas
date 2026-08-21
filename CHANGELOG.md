@@ -6,6 +6,39 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Added — milestone 8, apply
+
+- `python -m atlas apply` writes a permission rule, a hook entry or a
+  slash-command stub into a settings file, after printing the exact diff.
+  **Refusing is the default**: without `--yes` nothing is written.
+- The read-only rule is **narrowed rather than excepted**. The protected thing
+  is the record — transcripts, `history.jsonl`, `file-history/`, plugin state —
+  which stays read-only with no flag that changes it. Exactly one file under
+  `~/.claude` is writable and only when asked for by name: `settings.json`, via
+  `--scope user`. `CLAUDE.md` non-negotiable 1 and `SECURITY.md` guarantee 2 are
+  reworded to say so. See `docs/decisions/0010`.
+- Paths are resolved before they are checked: a project `.claude/settings.json`
+  that is a symlink into `~/.claude/projects` passes every check made on the
+  path as written.
+- Writes are atomic — temporary file, then rename — and a backup is kept beside
+  the database, **never inside `~/.claude`**, so restoring does not depend on
+  having written there.
+- A settings file that does not parse is never rewritten. Reformatting JSON we
+  could not read would silently discard the broken part.
+- A slash command is written as a **stub**, with the observed sequence, its
+  occurrence count and a TODO where the judgement goes. What repeats is in the
+  transcripts; why it repeats is not.
+- Applying records an intervention dated today, so a change made through this
+  tool is measurable by it afterwards. That is the loop the project is for.
+- 15 more tests, almost all of them refusals.
+
+### Fixed
+
+- `json.dumps(ensure_ascii=False)` when rewriting settings. The default escapes
+  non-ASCII, so adding one three-line permission rule to the real
+  `~/.claude/settings.json` produced a thirty-line diff that rewrote every em
+  dash in the user's own prose as `\u2014`.
+
 ### Added — milestone 7, now
 
 - `python -m atlas now` reports what is happening in the session being written
