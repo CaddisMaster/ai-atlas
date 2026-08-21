@@ -111,6 +111,26 @@ def test_a_milestone_the_changelog_says_landed_cannot_still_be_next(fake_repo):
     assert finding.state == STALE
 
 
+def test_a_milestone_named_in_prose_has_not_landed(fake_repo):
+    """"…which is what milestone 6 will compare" is a plan, not a claim.
+
+    Reading the whole `[Unreleased]` section rather than its headings turned
+    that sentence into "milestone 6 has landed", and handoff reported an empty
+    roadmap row as stale. It found this in its own repository, one commit after
+    the sentence was written.
+    """
+    (fake_repo / "CHANGELOG.md").write_text(
+        CHANGELOG + "\n- Stores what milestone 2 will compare against later.\n")
+    (fake_repo / "docs" / "status.md").write_text(
+        STATUS.replace("| 2 | Config resolution | next |",
+                       "| 2 | Config resolution | next |\n| 6 | Interventions | |"))
+    _git(fake_repo, "add", "-A")
+    _git(fake_repo, "commit", "-q", "-m", "prose")
+
+    report = run(fake_repo, counter=nine)
+    assert stale(report) == set(), "a milestone mentioned in prose has not landed"
+
+
 def test_a_test_count_pytest_disagrees_with_is_stale(fake_repo):
     report = run(fake_repo, counter=lambda _root: 27)
     finding = next(f for f in report.findings if f.check == "tests")

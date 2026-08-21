@@ -6,6 +6,9 @@ import sys
 from pathlib import Path
 
 from . import PARSER_VERSION, __version__
+from .baseline import ESTABLISHED, FLOOR
+from .baseline import build as baseline_build
+from .baseline import save as baseline_save
 from .config import UNKNOWN, resolve, save
 from .db import connect
 from .handoff import STALE
@@ -216,6 +219,104 @@ def cmd_handoff(args) -> int:
     return 1 if (args.strict and report.stale) else 0
 
 
+def _fmt(value: float) -> str:
+    if value >= 1000:
+        return f"{value:,.0f}"
+    return f"{value:.2f}".rstrip("0").rstrip(".") if value < 10 else f"{value:.1f}"
+
+
+def _print_baseline(base) -> None:
+    print(f"project     {base.project_root or '(all projects)'}")
+    print(f"sessions    {base.n} counted · {len(base.excluded)} excluded")
+
+    if not base.states_a_norm:
+        print(f"confidence  unknown — {base.n} session(s) is not a sample "
+              f"(a norm needs {FLOOR}). No normal band is stated.")
+    else:
+        room = "" if base.n >= ESTABLISHED else f", under {ESTABLISHED} — treat as indicative"
+        print(f"confidence  {base.confidence} (n = {base.n}{room})")
+
+    shares = [s for s in base.summaries if s.metric.startswith("share_")]
+    plain = [s for s in base.summaries if not s.metric.startswith("share_")]
+
+    print(f"\n{'metric':<18}{'median':>10}{'middle half':>22}{'normal band':>20}{'n':>5}")
+    for s in plain:
+        half = f"{_fmt(s.p25)} – {_fmt(s.p75)}"
+        band = f"{_fmt(s.low)} – {_fmt(s.high)}" if base.states_a_norm else "—"
+        print(f"{s.metric:<18}{_fmt(s.median):>10}{half:>22}{band:>20}{s.n:>5}")
+
+    if shares:
+        print("\ntool mix — share of a session's own tool calls")
+        for s in shares:
+            half = f"{_fmt(s.p25)} – {_fmt(s.p75)}"
+            print(f"  {s.metric[len('share_'):]:<16}{_fmt(s.median):>10}{half:>22}")
+
+    if base.states_a_norm:
+        print(f"\nunusual sessions ({len({o.session_id for o in base.outliers})})")
+        if not base.outliers:
+            widest = max((s for s in plain if s.spread), key=lambda s: s.spread, default=None)
+            if widest:
+                print("  none — which says as much about the sample as about the sessions:")
+                print(f"  the middle half of {widest.metric} already spans "
+                      f"{widest.spread:.0f}×, so the band catches almost anything.")
+            else:
+                print("  none")
+        for o in sorted(base.outliers, key=lambda o: o.session_id):
+            print(f"  {o.session_id[:8]}  {o.metric} {_fmt(o.value)} "
+                  f"({o.direction}; band {_fmt(o.band[0])} – {_fmt(o.band[1])})")
+
+    if base.excluded:
+        print(f"\nexcluded ({len(base.excluded)}) — recorded, never dropped")
+        for session_id, reason in base.excluded:
+            print(f"  {session_id[:8]}  {reason}")
+
+
+def cmd_baseline(args) -> int:
+    conn = connect(args.db)
+
+    if args.all:
+        roots = [r["project_root"] for r in conn.execute(
+            "SELECT DISTINCT project_root FROM sessions WHERE project_root IS NOT NULL"
+            " ORDER BY project_root")]
+        if not roots:
+            print("no sessions ingested — run `atlas ingest` first", file=sys.stderr)
+            return 1
+        for root in roots:
+            base = baseline_build(conn, root, kind=args.kind)
+            if not args.no_save:
+                baseline_save(conn, base)
+            note = (f"{base.confidence}" if base.states_a_norm
+                    else f"unknown — {base.n} session(s), a norm needs {FLOOR}")
+            print(f"{root}\n  {base.n} counted · {len(base.excluded)} excluded · {note}")
+        return 0
+
+    target = _target(conn, args.project)
+    if target is None:
+        return 1
+    base = baseline_build(conn, str(target), kind=args.kind)
+    if not base.counted and not base.excluded:
+        print(f"no {args.kind} sessions ingested for {target}", file=sys.stderr)
+        return 1
+
+    if args.json:
+        print(json.dumps({
+            "project_root": base.project_root, "kind": base.kind,
+            "n": base.n, "confidence": base.confidence,
+            "excluded": base.excluded,
+            "summaries": [vars(s) for s in base.summaries],
+            "outliers": [{**vars(o), "band": list(o.band)} for o in base.outliers],
+            "sessions": base.values,
+        }, indent=2))
+    else:
+        _print_baseline(base)
+
+    if not args.no_save:
+        baseline_id, is_new = baseline_save(conn, base)
+        if not args.json:
+            print(f"\nbaseline {baseline_id}" + ("" if is_new else " (unchanged, reused)"))
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="atlas", description="Measure how you work with Claude Code.")
     p.add_argument("--version", action="version", version=f"ai-atlas {__version__} (parser v{PARSER_VERSION})")
@@ -242,6 +343,14 @@ def main(argv=None) -> int:
     ho.add_argument("--strict", action="store_true", help="exit 1 when anything is stale")
     ho.add_argument("--no-save", action="store_true", help="do not store the run")
     ho.set_defaults(fn=cmd_handoff)
+
+    bl = sub.add_parser("baseline", help="what a normal session looks like in one project")
+    bl.add_argument("project", nargs="?", help="project directory, or part of a known project path")
+    bl.add_argument("--kind", default="main", choices=("main", "subagent"))
+    bl.add_argument("--all", action="store_true", help="one line per project")
+    bl.add_argument("--json", action="store_true", help="summaries, outliers and raw values")
+    bl.add_argument("--no-save", action="store_true", help="do not store the baseline")
+    bl.set_defaults(fn=cmd_baseline)
 
     args = p.parse_args(argv)
     return args.fn(args)

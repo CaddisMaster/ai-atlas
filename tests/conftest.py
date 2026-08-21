@@ -112,3 +112,56 @@ def fake_home(tmp_path, fake_project):
 @pytest.fixture
 def main_transcript(fake_home, fake_project):
     return fake_home / "projects" / encode_project_dir(fake_project) / "aaaa1111.jsonl"
+
+
+def add_session(conn, session_id, *, project_root="/work/demo-app", kind="main",
+                user=2, assistant=3, tools=(), minutes=30.0,
+                started="2026-08-20T10:00:00+00:00", usage=None):
+    """Insert one session's rows directly.
+
+    Baselines are computed from the database, so these fixtures build database
+    rows rather than transcripts — the path from JSONL to these tables is
+    covered by the ingest tests. The shapes mirror the corpus: a handful of long
+    tool-heavy sessions, a couple of short ones, and sessions with no assistant
+    turn at all, which really do exist.
+    """
+    from datetime import datetime, timedelta
+
+    conn.execute(
+        "INSERT INTO sessions (id, project, kind, source_path, project_root, parser_version)"
+        " VALUES (?, ?, ?, ?, ?, 2)",
+        (session_id, "-work-demo-app", kind, f"/t/{session_id}.jsonl", project_root))
+
+    begin = datetime.fromisoformat(started)
+    total = user + assistant
+    step = timedelta(minutes=minutes / max(total - 1, 1))
+    order = ["user"] * user + ["assistant"] * assistant
+    first_assistant = None
+    for i, role in enumerate(order):
+        uuid = f"{session_id}-m{i}"
+        conn.execute(
+            "INSERT INTO messages (uuid, session_id, type, role, ts, byte_offset, parser_version)"
+            " VALUES (?, ?, ?, ?, ?, ?, 2)",
+            (uuid, session_id, role, role, (begin + step * i).isoformat().replace("+00:00", "Z"), i))
+        if role == "assistant" and first_assistant is None:
+            first_assistant = uuid
+
+    # Session boundaries are derived, not recorded — the same UPDATE ingest runs.
+    conn.execute(
+        "UPDATE sessions SET"
+        " started = (SELECT MIN(ts) FROM messages WHERE messages.session_id = sessions.id),"
+        " ended   = (SELECT MAX(ts) FROM messages WHERE messages.session_id = sessions.id)"
+        " WHERE id = ?", (session_id,))
+
+    for seq, name in enumerate(tools):
+        conn.execute(
+            "INSERT INTO tool_calls (message_uuid, seq, session_id, name) VALUES (?, ?, ?, ?)",
+            (first_assistant, seq, session_id, name))
+
+    if usage and first_assistant:
+        conn.execute(
+            "INSERT INTO usage (message_uuid, input, output, cache_read, cache_creation)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (first_assistant, usage.get("input", 0), usage.get("output", 0),
+             usage.get("cache_read", 0), usage.get("cache_creation", 0)))
+    conn.commit()

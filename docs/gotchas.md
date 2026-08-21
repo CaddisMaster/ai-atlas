@@ -105,3 +105,47 @@ The same applies to versions: a status document mentions the versions of what it
 depends on, and the first run of the version check compared PostgreSQL 10.15.0
 against a git tag. The only comparable version is one that exists as a tag on
 the repository being checked.
+
+## Three of thirteen sessions have no assistant turn
+
+A prompt typed and abandoned, or a session that never got a reply. They are
+real rows with real timestamps and a duration of 0.0 minutes, and they drag
+every median toward zero if counted. `budget-buddy` has three of them out of
+thirteen; `material-list-import-tool` has two out of four.
+
+A session counts toward a baseline only if it has at least one assistant turn —
+and the ones left out are stored in `baseline_exclusions` with the reason,
+because a number that quietly ignores a quarter of the corpus is worse than no
+number.
+
+## `sessions.started` and `ended` do not exist until they are derived
+
+There is no "session ended" record in a transcript, so ingest computes both
+columns with an `UPDATE` after reading. Anything that inserts session rows
+directly — a test fixture, say — has rows with `NULL` boundaries and every
+duration metric silently disappears, because a missing value is absent from
+that metric by design. The fixture in `tests/conftest.py` runs the same
+`UPDATE` for that reason.
+
+## Pooled tool counts let the longest session define "normal"
+
+Counting a project's tool calls in aggregate answers "what does this project
+use", not "what does a session here look like". One 2,000-call session out of
+six sets the mix on its own.
+
+Shares are computed per session and then summarised. On the corpus this was
+written against, the two answers disagree in a way that matters: sessions are
+89% Bash at the median, and the one session that was 49% Bash and 28% Edit is
+the only one the baseline calls unusual.
+
+## A changelog's prose mentions milestones that have not landed
+
+`### Added — milestone 4, baselines` is a claim that milestone 4 shipped.
+"…which is what milestone 6 will compare before and after" is a plan, in a
+sentence inside that same section. Scanning the whole `[Unreleased]` body for
+`milestone N` cannot tell them apart, and reported an empty roadmap row as
+stale.
+
+Headings only. Found by handoff, in this repository, one commit after the
+sentence was written — which is the best evidence so far that the milestone
+was worth building.

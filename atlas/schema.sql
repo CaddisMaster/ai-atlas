@@ -142,3 +142,60 @@ CREATE TABLE IF NOT EXISTS handoff_findings (
     source      TEXT,
     PRIMARY KEY (snap_id, check_name, subject, source)
 );
+
+-- Baselines: what a normal session looks like in one project. Every row carries
+-- `baseline_version`, because a measurement whose definition changes is not a
+-- measurement — see atlas/baseline.py and VERSIONING.md.
+
+CREATE TABLE IF NOT EXISTS baselines (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    taken             TEXT NOT NULL,
+    project_root      TEXT,
+    kind              TEXT NOT NULL,
+    n_sessions        INTEGER NOT NULL,
+    n_excluded        INTEGER NOT NULL,
+    confidence        TEXT NOT NULL CHECK (confidence IN ('unknown', 'provisional', 'established')),
+    fingerprint       TEXT NOT NULL,
+    baseline_version  INTEGER NOT NULL,
+    parser_version    INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS baseline_metrics (
+    baseline_id  INTEGER NOT NULL REFERENCES baselines(id),
+    metric       TEXT NOT NULL,
+    n            INTEGER NOT NULL,   -- per metric: a missing value lowers this, not the total
+    p25          REAL,
+    median       REAL,
+    p75          REAL,
+    low          REAL,               -- Tukey fence, clamped at zero
+    high         REAL,
+    PRIMARY KEY (baseline_id, metric)
+);
+
+CREATE TABLE IF NOT EXISTS baseline_outliers (
+    baseline_id  INTEGER NOT NULL REFERENCES baselines(id),
+    session_id   TEXT NOT NULL,
+    metric       TEXT NOT NULL,
+    value        REAL NOT NULL,
+    direction    TEXT NOT NULL CHECK (direction IN ('high', 'low')),
+    PRIMARY KEY (baseline_id, session_id, metric)
+);
+
+-- Nothing is dropped silently: a session left out of a baseline is recorded
+-- here with the reason it was left out.
+CREATE TABLE IF NOT EXISTS baseline_exclusions (
+    baseline_id  INTEGER NOT NULL REFERENCES baselines(id),
+    session_id   TEXT NOT NULL,
+    reason       TEXT NOT NULL,
+    PRIMARY KEY (baseline_id, session_id)
+);
+
+-- The measurement itself, per session. Milestone 6 compares sessions before an
+-- intervention with sessions after it, which needs these rather than a summary.
+CREATE TABLE IF NOT EXISTS session_metrics (
+    session_id        TEXT NOT NULL,
+    metric            TEXT NOT NULL,
+    value             REAL,
+    baseline_version  INTEGER NOT NULL,
+    PRIMARY KEY (session_id, metric, baseline_version)
+);

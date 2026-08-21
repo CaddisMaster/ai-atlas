@@ -28,6 +28,20 @@ changes the transcript format, rows on either side of the change are not
 comparable — and a longitudinal tool that quietly compares them is worse than no
 tool at all.
 
+## The measurement definitions have their own version too
+
+`atlas.baseline.BASELINE_VERSION` covers **how something is counted**: which
+sessions are eligible, the quantile convention, the outlier fence, the sample
+size below which no norm is stated. Every stored measurement carries it.
+
+`PARSER_VERSION` says *what the transcript said*. `BASELINE_VERSION` says *what
+we made of it*. Both can change independently, and a comparison that spans a
+change in either is not a comparison.
+
+This is the whole premise, so it is worth being blunt: deciding to count
+abandoned sessions, or to move the outlier fence from 1.5×IQR to 3×, is a
+version bump and a changelog entry. It is never a tweak.
+
 ## Changelog
 
 Every user-visible change gets an entry under `## [Unreleased]` in
