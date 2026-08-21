@@ -39,7 +39,20 @@ somebody asks.
   an after, and is kept or discarded on the numbers.
 - **Now** — watches the running session and says when it is going backwards.
 
-Everything above the demo mode exists today. See [docs/status.md](docs/status.md).
+All of it exists today. See [docs/status.md](docs/status.md).
+
+## See it working without any data of your own
+
+```bash
+python -m atlas demo
+```
+
+Generates a synthetic corpus — nothing recorded, every command from an invented
+vocabulary — and runs every screen against it. It contains its own refusals on
+purpose: a project too small to have a normal, a change too late to measure,
+metrics that did not clear the threshold next to ones that did. An accurate
+advertisement rather than a good one; see
+[decision 0011](docs/decisions/0011-the-demo-must-not-flatter-the-tool.md).
 
 ## Quick start
 

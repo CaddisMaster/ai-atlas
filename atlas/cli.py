@@ -2,9 +2,11 @@
 
 import argparse
 import json
+import os
+import shutil
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from . import PARSER_VERSION, __version__
@@ -13,7 +15,9 @@ from .baseline import ESTABLISHED, FLOOR
 from .baseline import build as baseline_build
 from .baseline import save as baseline_save
 from .config import UNKNOWN, resolve, save
-from .db import connect
+from .db import connect, default_path
+from .demo import MARKER, generate
+from .demo import SEED as DEMO_SEED
 from .handoff import STALE
 from .handoff import run as handoff_run
 from .handoff import save as handoff_save
@@ -194,6 +198,24 @@ def cmd_config(args) -> int:
     return 0
 
 
+def _print_handoff(report, all_checks: bool = False, checked_github: bool = False) -> None:
+    print(f"repo     {report.repo}")
+    print(f"status   {report.status_path or '—'}")
+    shown = report.findings if all_checks else [f for f in report.findings if f.state != "ok"]
+    if not shown:
+        print(f"\n✅ nothing contradicts the status document ({len(report.findings)} checks)")
+    for f in sorted(shown, key=lambda f: (f.state != STALE, f.check)):
+        mark = "⚠️ " if f.state == STALE else ("· " if f.state == "ok" else "?  ")
+        print(f"\n{mark}{f.check}  {f.subject}")
+        print(f"     claims  {f.claim}")
+        print(f"     reality {f.actual}")
+        if f.source:
+            print(f"     at      {f.source}")
+    if not checked_github:
+        print("\nnot checked: open pull requests and issues "
+              "(pass --github; it is the one call that leaves the machine)")
+
+
 def cmd_handoff(args) -> int:
     """What the status document claims, and what the repository says."""
     report = handoff_run(args.repo or Path.cwd(), status=args.status, github=args.github)
@@ -206,22 +228,7 @@ def cmd_handoff(args) -> int:
             "findings": [vars(f) for f in report.findings],
         }, indent=2))
     else:
-        print(f"repo     {report.repo}")
-        print(f"status   {report.status_path or '—'}")
-        shown = report.findings if args.all else [
-            f for f in report.findings if f.state != "ok"]
-        if not shown:
-            print(f"\n✅ nothing contradicts the status document ({len(report.findings)} checks)")
-        for f in sorted(shown, key=lambda f: (f.state != STALE, f.check)):
-            mark = "⚠️ " if f.state == STALE else ("· " if f.state == "ok" else "?  ")
-            print(f"\n{mark}{f.check}  {f.subject}")
-            print(f"     claims  {f.claim}")
-            print(f"     reality {f.actual}")
-            if f.source:
-                print(f"     at      {f.source}")
-        if not args.github:
-            print("\nnot checked: open pull requests and issues "
-                  "(pass --github; it is the one call that leaves the machine)")
+        _print_handoff(report, all_checks=args.all, checked_github=args.github)
 
     if not args.no_save:
         conn = connect(args.db)
@@ -567,6 +574,100 @@ def cmd_apply(args) -> int:
     return 0
 
 
+BANNER = "─" * 72
+
+
+def _screen(title: str, subtitle: str = "") -> None:
+    print(f"\n\n{BANNER}\n  {title}")
+    if subtitle:
+        print(f"  {subtitle}")
+    print(BANNER)
+
+
+def cmd_demo(args) -> int:
+    """Generate a synthetic corpus and run every screen against it."""
+    root = Path(args.dir) if args.dir else default_path().parent / "demo"
+    if root.exists() and args.fresh:
+        if not (root / MARKER).exists():
+            print(f"refusing to delete {root}: no {MARKER} marker — is this really a demo dir?",
+                  file=sys.stderr)
+            return 2
+        shutil.rmtree(root)
+
+    corpus = generate(root, seed=args.seed, sessions=args.sessions)
+    # Every claude_home() call inside this process now points at the demo.
+    os.environ["ATLAS_CLAUDE_HOME"] = str(corpus.claude_home)
+    busy, tiny = corpus.projects
+    conn = connect(root / "atlas-demo.db")
+
+    print(BANNER)
+    print("  SYNTHETIC DEMO — every number below comes from transcripts this")
+    print("  program generated. No real session, prompt or command appears in it.")
+    print(f"  seed {args.seed} · {corpus.sessions} transcripts · {root}")
+    print(BANNER)
+    print("\n  The corpus was built with one real behavioural change partway")
+    print("  through, and deliberately not tuned to flatter the tool: one project")
+    print("  has too few sessions to say anything, and it gets refused.")
+
+    _screen("atlas ingest", "read the corpus — new bytes only on a second run")
+    result = ingest(conn, corpus.claude_home)
+    print(f"scanned  {result.files_seen} transcripts")
+    print(f"read     {result.bytes_read:,} bytes · {result.messages:,} messages "
+          f"· {result.tool_calls:,} tool calls")
+    if result.unknown_types:
+        print(f"⚠️  unmodelled record types, counted not dropped: "
+              f"{', '.join(sorted(result.unknown_types))}")
+    print(f"second run reads {ingest(conn, corpus.claude_home).bytes_read} bytes")
+
+    _screen("atlas config", "resolved across every scope, with provenance")
+    resolution = resolve(busy, root=corpus.claude_home)
+    _print_resolution(resolution, verbose=False)
+
+    _screen("atlas baseline", "what a normal session looks like here")
+    _print_baseline(baseline_build(conn, str(busy)))
+    print("\n  …and the project with two sessions:")
+    _print_baseline(baseline_build(conn, str(tiny)))
+
+    _screen("atlas patterns", "work that repeats, ranked by lift rather than frequency")
+    save(conn, resolution)
+    report = patterns_find(conn, str(busy))
+    for pattern in report.patterns[:4]:
+        print(f"\n  {pattern.support} sessions · {pattern.count}× · lift {pattern.lift:.0f}"
+              f"   {pattern.text}")
+        print(f"      proposes  {pattern.proposal}")
+    for proposal in report.permissions[:3]:
+        print(f"  {proposal.calls:>5}×  {proposal.signature:<22}proposes  {proposal.rule}")
+
+    _screen("atlas intervention", "did that change help?")
+    changed = intervention_record(conn, str(busy), "replaced the four-step ritual with /reconcile",
+                                  corpus.changed_on, kind="command",
+                                  expectation="shorter sessions")
+    _print_measurement("replaced the four-step ritual with /reconcile",
+                       intervention_measure(conn, intervention_id=changed))
+    late = intervention_record(conn, str(busy), "added a deny rule (too late to measure)",
+                               (datetime.now(UTC) - timedelta(days=1)).isoformat(), kind="rule")
+    _print_measurement("added a deny rule (too late to measure)",
+                       intervention_measure(conn, intervention_id=late))
+
+    _screen("atlas now", "the transcript still being written — it ends mid-record")
+    _print_now(look(conn, corpus.claude_home, within_minutes=60), 60)
+
+    _screen("atlas handoff", "the demo's status document is deliberately stale")
+    _print_handoff(handoff_run(busy, github=False))
+
+    _screen("atlas apply", "shows the diff and writes nothing without --yes")
+    change = add_rule(busy, "Bash(make test:*)")
+    print(f"file    {change.path}\n")
+    print(change.diff)
+    print("nothing written. Re-run with --yes to apply.")
+
+    print(f"\n{BANNER}")
+    print("  End of demo. Everything above came from generated transcripts.")
+    print(f"  Delete it with:  rm -rf {root}")
+    print(BANNER)
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="atlas", description="Measure how you work with Claude Code.")
     p.add_argument("--version", action="version", version=f"ai-atlas {__version__} (parser v{PARSER_VERSION})")
@@ -645,6 +746,13 @@ def main(argv=None) -> int:
     ap.add_argument("--description", help="one line for the stub's front matter")
     ap.add_argument("--yes", action="store_true", help="actually write it")
     ap.set_defaults(fn=cmd_apply)
+
+    dm = sub.add_parser("demo", help="generate a synthetic corpus and run every screen on it")
+    dm.add_argument("--dir", help="where to put it (default: beside the database)")
+    dm.add_argument("--seed", type=int, default=DEMO_SEED, help="same seed, same corpus")
+    dm.add_argument("--sessions", type=int, default=20, help="sessions in the busy project")
+    dm.add_argument("--fresh", action="store_true", help="delete and regenerate first")
+    dm.set_defaults(fn=cmd_demo)
 
     args = p.parse_args(argv)
     return args.fn(args)

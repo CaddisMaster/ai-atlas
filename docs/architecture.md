@@ -210,6 +210,22 @@ symlink otherwise passes every check made on the path as written. See
 Applying records an intervention, which is what closes the loop: a change made
 through this tool is measurable by it afterwards.
 
+## Demo
+
+```
+atlas demo ──▶ generate a corpus (seeded) ──▶ ingest ──▶ every screen in turn
+                       │
+                       ├─ a project with 20 sessions and a real change halfway
+                       ├─ a project with 2, which gets refused
+                       ├─ abandoned sessions · a subagent with its parent's id
+                       ├─ an unmodelled record type · compound commands
+                       └─ a final line left half-written
+```
+
+Generated, never recorded: every command comes from an invented vocabulary and a
+test asserts nothing else appears. The corpus contains its own refusals on
+purpose — see `decisions/0011`.
+
 ## What is deliberately absent
 
 **No server, no container, no Postgres.** The product only works if a stranger

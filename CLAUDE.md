@@ -65,5 +65,5 @@ Run `/wrap`. It carries the sequence and the traps.
 
 ## Current status
 
-Milestones 1–8 work: ingest, config, handoff, baselines, patterns,
-interventions, now, apply. See [docs/status.md](docs/status.md).
+All nine milestones work: ingest, config, handoff, baselines, patterns,
+interventions, now, apply, demo. See [docs/status.md](docs/status.md).
