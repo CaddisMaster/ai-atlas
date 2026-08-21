@@ -254,3 +254,25 @@ one-rule change is a small diff.
 and every "is this inside the project?" test passes while the write lands in a
 transcript directory. Resolve first, then check. Guarded by
 `test_a_symlink_out_of_the_project_is_refused`.
+
+## A generator bug looks exactly like a detector bug
+
+The demo's `patterns` screen reported rotated fragments —
+`git diff → git status → git add → git diff` — which reads as a broken
+sequence detector. It was not: the generator distributed each ritual across
+turns with a *strided* slice (`calls[turn::turns]`) instead of contiguous
+chunks, so the transcript really did say that.
+
+Then, once fixed, four near-identical rows appeared: the ritual is a **cycle**
+if it repeats back-to-back, and every rotation scores as its own pattern. Real
+work interleaves, so the generator now always emits something else afterwards.
+
+When a synthetic corpus produces a strange finding, check the corpus first.
+
+## Twenty-six files written in the same second have no useful order
+
+`atlas now` picks the live transcript by mtime, and a freshly generated demo
+wrote every file inside one second — so "the session being written right now"
+came out as an arbitrary one from the middle of the corpus. The generator now
+stamps each transcript with the mtime its session would really have, and the
+still-being-written one with the current time.

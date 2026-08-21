@@ -6,6 +6,43 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Added — milestone 9, demo
+
+- `python -m atlas demo` generates a synthetic corpus and runs every screen
+  against it. One command, no Claude Code history required.
+- **Generated, never recorded.** Every command comes from a small invented
+  vocabulary, and a test asserts nothing outside it appears. A demo built from
+  real transcripts would carry source code, shell output and eventually a
+  credential — which is the whole reason for generating one.
+- **The corpus contains its own refusals, on purpose**: a second project with
+  two sessions that is told it has no normal, an intervention dated too late to
+  have an after-half, metrics inside a successful comparison that do not clear
+  the corrected threshold, and noise sequences rejected by lift. A test asserts
+  a `moved` and a `no verdict` appear in the same measurement, so tuning the
+  generator until everything moves breaks the build. See
+  `docs/decisions/0011`.
+- The effect in the corpus is real — a behavioural change halfway through, the
+  four-step ritual replaced by one command — and the tool is left to find it at
+  ten sessions either side. It does: `duration_min 45.1 → 17.8, p = 0.001`.
+- The corpus carries the awkward cases deliberately: abandoned sessions, a
+  subagent transcript holding its parent's `sessionId`, an unmodelled record
+  type, multi-line and compound commands, and a final line left half-written.
+- Seeded, so the same seed gives the same corpus and a README screenshot is
+  reproducible.
+- `--fresh` refuses to delete a directory that has no `.atlas-demo` marker.
+- 9 more tests.
+
+### Fixed — found while building the demo
+
+- The generator distributed each ritual across turns with a strided slice, so
+  `patterns` reported rotated fragments — a generator bug that looks exactly
+  like a detector bug from the outside.
+- Rituals no longer repeat back-to-back in the corpus. A sequence that repeats
+  immediately is a *cycle*, and every rotation of it scores as its own pattern.
+- Generated transcripts carry the mtime their session would really have. Writing
+  26 files inside one second made "which transcript is live" arbitrary, and
+  `atlas now` picked one from the middle of the corpus.
+
 ### Added — milestone 8, apply
 
 - `python -m atlas apply` writes a permission rule, a hook entry or a
