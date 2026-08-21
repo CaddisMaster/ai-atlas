@@ -8,6 +8,12 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ### Added — an HTML report
 
+- ⚠️ Known gap, recorded in `docs/status.md` as the next thing to do: **the page
+  does not explain itself**. Shown the published example, a reader who had not
+  built it had no idea what they were looking at — it opens with a project name
+  and a wall of numbers, and every label assumes nine architecture decisions
+  have been read.
+
 - `python -m atlas report` writes **one self-contained HTML page** for a
   project: handoff findings, configuration with provenance, repeated work,
   session norms, recorded changes, and the live session if there is one.

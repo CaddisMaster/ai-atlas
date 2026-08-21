@@ -247,18 +247,25 @@ everything moves.
 
 The roadmap is finished, so this section replaces it. In rough order of value:
 
-0. **Reverted-edit detection**, from `file-history/`. It has moved to the top:
-   it is the one signal that stands on its own from a single session, so it is
+0. **The report page does not explain itself.** Shown the published example, a
+   reader who had not built it said, reasonably, that they had no idea what they
+   were looking at. It opens with a project name and a wall of numbers, and
+   every label on it — `lift 8225`, `cannot separate at this sample size`,
+   `provisional` — assumes nine architecture decisions have been read.
+   The fix is a plain-English panel at the top saying what the page is, and one
+   sentence under each heading saying what its number means in words. This is
+   the next thing to do, and it is worth more than any new measurement: a page
+   only its author can read is a page that gets shown to nobody.
+
+1. **Reverted-edit detection**, from `file-history/` (6.1 MB, still unread).
+   It is the one signal that stands on its own from a single session, so it is
    the only thing that could justify the report or the live screen raising an
    alarm — which is exactly what the original mockup tried to do a milestone too
-   early. See `decisions/0013`.
+   early. See `decisions/0009` and `0013`.
 
-1. **Paired comparison.** Whole-session before/after needs six sessions a side
+2. **Paired comparison.** Whole-session before/after needs six sessions a side
    even after cutting to three pre-registered metrics (`decisions/0012`). Comparing *within* sessions would need far fewer, and needs a
    definition of "the same task" that has to be versioned rather than tuned.
-2. **`file-history/`** is still unread — the route to detecting reverted edits,
-   and the one signal that could justify a live screen saying something is
-   going wrong (`decisions/0009`).
 3. **Plugins** are not read by config resolution. They supply commands, agents,
    skills and hooks, so the same class of wrong answer `decisions/0001` exists
    for is still available there.
