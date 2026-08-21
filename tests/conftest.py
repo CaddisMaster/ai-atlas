@@ -153,10 +153,14 @@ def add_session(conn, session_id, *, project_root="/work/demo-app", kind="main",
         " ended   = (SELECT MAX(ts) FROM messages WHERE messages.session_id = sessions.id)"
         " WHERE id = ?", (session_id,))
 
-    for seq, name in enumerate(tools):
+    # A tool entry is either a bare name ("Grep") or a full signature
+    # ("Bash:git add"), exactly as ingest stores them.
+    for seq, entry in enumerate(tools):
+        name = entry.split(":")[0]
         conn.execute(
-            "INSERT INTO tool_calls (message_uuid, seq, session_id, name) VALUES (?, ?, ?, ?)",
-            (first_assistant, seq, session_id, name))
+            "INSERT INTO tool_calls (message_uuid, seq, session_id, name, signature)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (first_assistant, seq, session_id, name, entry))
 
     if usage and first_assistant:
         conn.execute(

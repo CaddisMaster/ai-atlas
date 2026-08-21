@@ -43,9 +43,11 @@ CREATE TABLE IF NOT EXISTS tool_calls (
     seq           INTEGER NOT NULL,
     session_id    TEXT NOT NULL,
     name          TEXT NOT NULL,
+    signature     TEXT,          -- `Bash:git commit`, `Edit:.py` — see atlas/signature.py
     PRIMARY KEY (message_uuid, seq)
 );
 CREATE INDEX IF NOT EXISTS idx_tool_calls_name ON tool_calls(name);
+CREATE INDEX IF NOT EXISTS idx_tool_calls_sig  ON tool_calls(signature);
 
 CREATE TABLE IF NOT EXISTS usage (
     message_uuid    TEXT PRIMARY KEY REFERENCES messages(uuid),
@@ -198,4 +200,54 @@ CREATE TABLE IF NOT EXISTS session_metrics (
     value             REAL,
     baseline_version  INTEGER NOT NULL,
     PRIMARY KEY (session_id, metric, baseline_version)
+);
+
+-- Patterns: sequences of tool calls that repeat across sessions, and the
+-- artifact each one suggests. Definitions frozen under `pattern_version`.
+
+CREATE TABLE IF NOT EXISTS pattern_runs (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    taken            TEXT NOT NULL,
+    project_root     TEXT,
+    kind             TEXT NOT NULL,
+    n_sessions       INTEGER NOT NULL,
+    n_calls          INTEGER NOT NULL,
+    fingerprint      TEXT NOT NULL,
+    pattern_version  INTEGER NOT NULL,
+    parser_version   INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS patterns (
+    run_id       INTEGER NOT NULL REFERENCES pattern_runs(id),
+    sequence     TEXT NOT NULL,     -- `Bash:git add → Bash:git commit`
+    length       INTEGER NOT NULL,
+    support      INTEGER NOT NULL,  -- distinct sessions, never raw occurrences
+    occurrences  INTEGER NOT NULL,
+    lift         REAL,              -- occurrences ÷ what the parts' frequencies predict
+    proposal     TEXT,
+    why          TEXT,
+    PRIMARY KEY (run_id, sequence)
+);
+
+-- Every occurrence, with the message it started at, so a claim can be checked
+-- by hand against the transcript rather than believed.
+CREATE TABLE IF NOT EXISTS pattern_occurrences (
+    run_id        INTEGER NOT NULL REFERENCES pattern_runs(id),
+    sequence      TEXT NOT NULL,
+    session_id    TEXT NOT NULL,
+    message_uuid  TEXT NOT NULL,
+    position      INTEGER NOT NULL,   -- index in the session's collapsed sequence
+    from_end      INTEGER NOT NULL,
+    -- ⚠️ Not (…, message_uuid): one assistant message can make several tool
+    -- calls, so two occurrences of a sequence can start in the same message.
+    PRIMARY KEY (run_id, sequence, session_id, position)
+);
+
+CREATE TABLE IF NOT EXISTS pattern_permissions (
+    run_id     INTEGER NOT NULL REFERENCES pattern_runs(id),
+    signature  TEXT NOT NULL,
+    calls      INTEGER NOT NULL,
+    sessions   INTEGER NOT NULL,
+    rule       TEXT NOT NULL,
+    PRIMARY KEY (run_id, signature)
 );

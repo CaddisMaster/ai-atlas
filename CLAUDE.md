@@ -61,5 +61,5 @@ Run `/wrap`. It carries the sequence and the traps.
 
 ## Current status
 
-Ingest, config resolution, handoff and baselines work. See
+Ingest, config resolution, handoff, baselines and patterns work. See
 [docs/status.md](docs/status.md).

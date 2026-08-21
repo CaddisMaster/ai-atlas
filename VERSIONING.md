@@ -30,9 +30,11 @@ tool at all.
 
 ## The measurement definitions have their own version too
 
-`atlas.baseline.BASELINE_VERSION` covers **how something is counted**: which
+`atlas.baseline.BASELINE_VERSION` and `atlas.patterns.PATTERN_VERSION` cover
+**how something is counted**: which
 sessions are eligible, the quantile convention, the outlier fence, the sample
-size below which no norm is stated. Every stored measurement carries it.
+size below which no norm is stated, what counts as a repeated sequence and the
+lift below which it is a coincidence. Every stored measurement carries one.
 
 `PARSER_VERSION` says *what the transcript said*. `BASELINE_VERSION` says *what
 we made of it*. Both can change independently, and a comparison that spans a

@@ -7,7 +7,7 @@
 
 ## What the tests are for
 
-Fifty-six tests. The ones that matter most are regressions for wrong answers
+Eighty-eight tests. The ones that matter most are regressions for wrong answers
 found by running against **real data** rather than by reasoning about it:
 
 - `test_project_scope_is_not_missed_by_a_user_scope_read` — the false claim that
@@ -27,6 +27,10 @@ and exposed a genuine defect: the watermark's prefix hash covered a fixed 4 KB
 window, so any file smaller than that invalidated its own watermark on every
 append. That is the whole argument for writing the acceptance test before
 believing the implementation.
+
+The pattern tests are mostly about *not* finding things: a coincidence, a
+repetition, a habit that happened once. `test_calls_that_merely_co_occur_are_not_a_pattern`
+is the frequency trap that the real corpus walked into first.
 
 Most of the baseline tests are about the **refusals** — the sample below the
 floor, the abandoned session, the subagents kept out of the main baseline —
@@ -52,6 +56,11 @@ data behind it, which is worth knowing when it eventually misbehaves.
 
 Ingest against a transcript that is actively being written. The partial-line
 path is covered synthetically, but not under a real concurrent writer.
+
+Signature extraction is tested against commands copied out of the corpus —
+multi-line `cd` prefixes, `echo` labels, loop headers, `.venv/bin/pytest`. Two
+of those cases are regressions for defects found by running the extractor over
+2,780 real calls, before any of it was wired into ingest.
 
 Baseline fixtures build database rows rather than transcripts. The JSONL path
 into those tables is covered by the ingest tests, and duplicating it here would

@@ -39,7 +39,7 @@ somebody asks.
   an after, and is kept or discarded on the numbers.
 - **Now** — watches the running session and says when it is going backwards.
 
-Ingest, config resolution, handoff and baselines exist today. See
+Ingest, config resolution, handoff, baselines and patterns exist today. See
 [docs/status.md](docs/status.md).
 
 ## Quick start
@@ -51,6 +51,7 @@ python -m atlas config    # what is configured here, and which scope it came fro
 python -m atlas config --all
 python -m atlas handoff   # what docs/status.md claims that the repo contradicts
 python -m atlas baseline  # what a normal session looks like here, and which were not
+python -m atlas patterns  # work that repeats, and the artifact that would capture it
 ```
 
 No dependencies and no install step — ingest is stdlib-only and SQLite ships
@@ -77,6 +78,15 @@ have three sessions, two and one, and are told so rather than given a median:
 budget-buddy   10 counted · 3 excluded (no assistant turn) · provisional
                median session: 120 min · 270 tool calls · 89% of them Bash
                1 session unusual — 49% Bash, 28% Edit, in a project that greps
+```
+
+`patterns` finds the work that repeats, ranked by how much more often it happens
+than chance — never by how often it happens:
+
+```
+4 sessions ·  4× · lift 249   Bash:git add → Bash:git push → Bash:gh pr
+                              proposes a slash command
+8 sessions · 50× · lift   2   Bash:grep → Bash:sed        ← not reported: chance
 ```
 
 Second run of `ingest` reads **0 bytes**. Re-ingest costs new bytes only.

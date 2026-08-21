@@ -9,4 +9,8 @@ __version__ = "0.1.0"
 # record's `cwd`. It is how a transcript is tied to the project configuration
 # that produced it; the directory name under projects/ cannot be decoded back
 # into a path. See paths.encode_project_dir.
-PARSER_VERSION = 2
+# v3 — every tool call carries a signature: the first two meaningful words of a
+# Bash command, the extension of a file touched, the name of a skill invoked.
+# 89% of tool calls are Bash, so the tool name alone cannot show repetition.
+# See atlas/signature.py.
+PARSER_VERSION = 3
