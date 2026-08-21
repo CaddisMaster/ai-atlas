@@ -3,6 +3,7 @@
 import argparse
 import json
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -22,6 +23,7 @@ from .interventions import detect as intervention_detect
 from .interventions import measure as intervention_measure
 from .interventions import record as intervention_record
 from .interventions import save as intervention_save
+from .now import LIVE_WINDOW_MINUTES, look
 from .paths import claude_home
 from .patterns import MIN_SUPPORT
 from .patterns import find as patterns_find
@@ -454,6 +456,67 @@ def cmd_intervention(args) -> int:
     return 0
 
 
+def _ordinal(n: int) -> str:
+    """11th, 21st, 22nd — because "22th" makes a reader distrust the rest."""
+    if 11 <= n % 100 <= 13:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }".replace(" ", "")
+
+
+def _print_now(now, within: int = LIVE_WINDOW_MINUTES) -> int:
+    if now is None:
+        print(f"no transcript written in the last {within} minutes")
+        print("nothing is running — which is the usual state of affairs")
+        return 0
+
+    idle = now.idle_minutes
+    print(f"session   {now.session_id or '(no records yet)'}  ({now.kind})")
+    print(f"project   {now.project_root or now.path.parent.name}")
+    line = f"started   {(now.started or '—')[:16].replace('T', ' ')} UTC"
+    if idle is not None:
+        line += f"   ·   last write {idle:.1f} min ago"
+    print(line)
+    print(f"read      {now.bytes_read:,} new bytes this look")
+    print(f"so far    {now.user_turns} user turns · {now.assistant_turns} assistant turns "
+          f"· {now.tool_calls} tool calls")
+    if now.recent:
+        print(f"doing     {' → '.join(now.recent)}")
+
+    if now.placements:
+        print(f"\n{'metric':<23}{'now':>12}{'median here':>14}{'vs past':>10}   band")
+        for p in sorted(now.placements, key=lambda p: p.metric):
+            band = f"{_fmt(p.band[0])} – {_fmt(p.band[1])}" if p.band else "—"
+            flag = "  ← outside the band" if p.outside_band else ""
+            rank = f"{_ordinal(p.percentile)}" if p.percentile is not None else "—"
+            print(f"{p.metric:<23}{_fmt(p.value):>12}{_fmt(p.median or 0):>14}"
+                  f"{rank:>10}   {band}{flag}")
+
+    for note in now.notes:
+        print(f"\n⚠️  {note}")
+    return 0
+
+
+def cmd_now(args) -> int:
+    conn = connect(args.db)
+    project_dir = args.project
+    if args.watch:
+        try:
+            while True:
+                print("\033[2J\033[H", end="")
+                print(f"— {datetime.now(UTC).strftime('%H:%M:%S')} UTC —\n")
+                _print_now(look(conn, project_dir=project_dir, within_minutes=args.within),
+                           args.within)
+                # ⚠️ Redirected stdout is block-buffered, so a watch piped to a
+                # file or a pager showed nothing at all until the buffer filled
+                # — and nothing ever, if it was interrupted first.
+                sys.stdout.flush()
+                time.sleep(args.watch)
+        except KeyboardInterrupt:
+            return 0
+    return _print_now(look(conn, project_dir=project_dir, within_minutes=args.within),
+                      args.within)
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="atlas", description="Measure how you work with Claude Code.")
     p.add_argument("--version", action="version", version=f"ai-atlas {__version__} (parser v{PARSER_VERSION})")
@@ -507,6 +570,15 @@ def main(argv=None) -> int:
     iv.add_argument("--expect", help="what you were hoping for — recorded, never scored")
     iv.add_argument("--no-save", action="store_true", help="do not store the measurement")
     iv.set_defaults(fn=cmd_intervention)
+
+    nw = sub.add_parser("now", help="what is happening in the session being written right now")
+    nw.add_argument("project", nargs="?",
+                    help="part of the transcript directory name, to pick one project")
+    nw.add_argument("--watch", type=float, metavar="SECONDS",
+                    help="refresh every SECONDS until interrupted")
+    nw.add_argument("--within", type=int, default=LIVE_WINDOW_MINUTES,
+                    help=f"minutes since the last write to count as live (default {LIVE_WINDOW_MINUTES})")
+    nw.set_defaults(fn=cmd_now)
 
     args = p.parse_args(argv)
     return args.fn(args)

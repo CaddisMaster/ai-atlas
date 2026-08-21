@@ -170,6 +170,25 @@ expectation the human wrote down is stored and never scored — checking whether
 the numbers agree with what somebody already believed is the trap this whole
 subsystem exists to avoid.
 
+## Now
+
+```
+~/.claude/projects/**.jsonl ──mtime──▶ the file written most recently
+                                            │
+                       ingest_one ──────────┤  new bytes only, stops before a
+                                            │  half-written final line
+                    milestone 4 metrics ────┴──▶ placed among past sessions
+                                                 (or not, below five of them)
+```
+
+The live session is found on the filesystem, not in the database: a session
+that started ten seconds ago has no rows yet.
+
+**Nothing here is stored, and nothing here grades.** A live session is n = 1, so
+the screen states facts, places them, and names what it placed them against.
+`Placement` has no field for a score or a severity — a field that does not exist
+cannot be printed by accident. See `decisions/0009`.
+
 ## What is deliberately absent
 
 **No server, no container, no Postgres.** The product only works if a stranger

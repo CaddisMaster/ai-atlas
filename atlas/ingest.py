@@ -230,6 +230,36 @@ def _ingest_file(conn, path: Path, root: Path | None, res: Result) -> None:
     )
 
 
+def _derive_boundaries(conn) -> None:
+    """Session boundaries are derived, not recorded.
+
+    A transcript has no "session ended" marker, so the first and last message
+    timestamps are it.
+    """
+    conn.execute(
+        """
+        UPDATE sessions SET
+            started = (SELECT MIN(ts) FROM messages WHERE messages.session_id = sessions.id),
+            ended   = (SELECT MAX(ts) FROM messages WHERE messages.session_id = sessions.id)
+        """
+    )
+
+
+def ingest_one(conn, path: Path, root: Path | None = None) -> Result:
+    """Catch up on a single transcript — the live-session path.
+
+    Reading one growing file costs its new bytes, which is the whole point of
+    the watermark: a session that is still being written can be looked at every
+    few seconds without re-reading the 49 MB in front of the cursor.
+    """
+    res = Result(files_seen=1)
+    _ingest_file(conn, path, root, res)
+    _derive_boundaries(conn)
+    res.sessions = conn.execute("SELECT COUNT(*) AS n FROM sessions").fetchone()["n"]
+    conn.commit()
+    return res
+
+
 def ingest(conn, root: Path | None = None) -> Result:
     res = Result()
     for path in transcript_files(root):

@@ -215,3 +215,24 @@ A session that started before a change landed and ended after it saw both
 worlds. Counting it either way misstates which world it was in. It is excluded
 and reported — one of the thirteen real sessions is in exactly this position for
 two of the four detected changes.
+
+## Redirected stdout is block-buffered, and a watch loop never flushes it
+
+`atlas now --watch 3` printed frames on a terminal and produced an **empty
+file** when redirected — the buffer had not filled by the time the process was
+interrupted. A long-running loop that prints has to flush, or its output exists
+only when somebody is looking at it directly.
+
+## The newest transcript in a project is often the subagent's
+
+A subagent transcript is written after its parent starts and finishes before it
+does, so "most recently written" picks the subagent surprisingly often — which
+is correct for finding what is *running*, and wrong for a fixture that meant to
+point at the main session. Tests that care about which file is live pin the
+mtimes with `os.utime` rather than relying on the order the fixture wrote them.
+
+## A session that started ten seconds ago has no rows
+
+So the live session is found on the filesystem by mtime, never by querying the
+database. This is `decisions/0003` again, in the one place where a database
+lookup would have looked obviously simpler.

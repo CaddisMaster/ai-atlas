@@ -19,6 +19,7 @@ or when reversing it would break something non-obvious.
 | [0006](0006-a-norm-needs-a-floor.md) | A norm needs a floor | Three sessions is arithmetic, not a normal |
 | [0007](0007-lift-not-frequency.md) | Lift, not frequency | The most common pair in the corpus means nothing |
 | [0008](0008-an-experiment-that-could-not-have-worked.md) | "Could not have found anything" ≠ "found nothing" | Three against three cannot beat p = 0.2, whatever happened |
+| [0009](0009-a-live-session-is-n-of-one.md) | A live session is n = 1 | State the fact, place it, never grade it |
 
 ## Format
 

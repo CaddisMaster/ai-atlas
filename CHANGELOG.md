@@ -6,6 +6,33 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Added — milestone 7, now
+
+- `python -m atlas now` reports what is happening in the session being written
+  right now: turns, tool calls, the last few things it did, and where the
+  session sits among that project's past sessions. `--watch N` refreshes.
+- The live transcript is found by **file mtime, not by querying the database** —
+  a session that started ten seconds ago has no rows yet.
+- Looking costs **new bytes only**: `ingest_one` catches up on a single file
+  through the milestone-1 watermark. Watching this repository's own session read
+  313 KB on the first look and 0 on the second.
+- **A live session is n = 1**, so the screen states facts and places them, and
+  never grades. No score, no severity, no advice — and `Placement` has no field
+  for one, with a test asserting those fields do not exist. Below five past
+  sessions nothing is placed at all and the raw counts are still shown. See
+  `docs/decisions/0009`.
+- Nothing about the live view is stored. It is the one genuinely ephemeral thing
+  here; the rows behind it are already in the database.
+- `test_ingest_keeps_up_with_a_live_writer` closes the gap `docs/testing.md` has
+  listed since milestone 1: a thread appending records **in fragments** while
+  the reader catches up, asserting every record arrives exactly once.
+
+### Fixed
+
+- `atlas now --watch` flushes each frame. Redirected stdout is block-buffered,
+  so a watch piped to a file produced nothing at all until the buffer filled —
+  and nothing ever, if it was interrupted first.
+
 ### Added — milestone 6, interventions
 
 - `python -m atlas intervention add` records a change to how you work with its

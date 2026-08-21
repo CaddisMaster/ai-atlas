@@ -8,8 +8,8 @@
 
 ## Where things are — 2026-08-21
 
-**Milestones 1–6 of 9 are done.** Ingest, config resolution, handoff, baselines,
-patterns and interventions all work against real data.
+**Milestones 1–7 of 9 are done.** Everything but apply and demo mode works
+against real data.
 
 ```
 25 transcript files · 54.1 MB · 8,455 messages · 2,709 tool calls
@@ -21,7 +21,8 @@ handoff: 7 checks, clean on this repo, 2 bugs found on the sibling one
 baseline: a norm for 1 of 4 projects; the other 3 are told they have none
 patterns: 198 signatures from 20 tool names; rituals at lift 249, noise at 2
 interventions: 4 real changes detected; every one of them unmeasurable, and told so
-102 tests · ruff clean
+now: watched this session write itself — 4.5 KB, 0 KB, 6.4 KB across three frames
+113 tests · ruff clean
 ```
 
 ## The roadmap
@@ -34,8 +35,8 @@ interventions: 4 real changes detected; every one of them unmeasurable, and told
 | 4 | Baseline — per-project norms | ✅ done |
 | 5 | Patterns — repeated-sequence detection | ✅ done |
 | 6 | Interventions — before/after measurement | ✅ done |
-| 7 | Now — live session watchdog | next |
-| 8 | Apply — write config with diff and confirmation | |
+| 7 | Now — live session watchdog | ✅ done |
+| 8 | Apply — write config with diff and confirmation | next |
 | 9 | Demo mode — synthetic transcripts, public landing | |
 
 ## Milestone 2 acceptance criteria — met
@@ -152,19 +153,46 @@ would misreport that as *the change did nothing*. There is a fourth outcome —
 figure up front, because it is worth knowing before an experiment. See
 `decisions/0008`.
 
-## Milestone 7 acceptance criteria
+## Milestone 7 acceptance criteria — met
 
-Now passes when, pointed at a session that is still being written, it reports
-what is happening in it against that project's baseline — and does it without
-reading the whole transcript, since the watermark already exists.
+`python -m atlas now` finds the transcript written most recently, catches up on
+it — **new bytes only** — and reports what is in it. Run against this repository
+while this session was being written, it read 313 KB the first time and 0 the
+second, and its "doing" line was the last eight commands actually run.
 
-It has to hold to the same line as milestone 6 one more time: a single session
-is n = 1. "This session is at the 90th percentile for tool calls" is a fact;
-"this session is going badly" is a judgement the numbers cannot support, and the
-screen must not imply it.
+```
+session   78f9221a-…  (main)
+so far    147 user turns · 256 assistant turns · 140 tool calls
+doing     Bash:git status → Bash:git commit → Bash:gh pr → Bash:ruff check
+⚠️  1 past session(s) — too few to place this one against
+```
 
-⚠️ The partial-line path in ingest is covered synthetically but has never been
-run against a live writer. This milestone is where that gets tested for real.
+Placed against a project that has a baseline, it states where the session sits
+and what it is sitting among — "135 assistant turns, median here 579.5, 22nd of
+9 earlier sessions" — and nothing else. **A live session is n = 1**, so there is
+no score, no severity and no advice, and `Placement` has no field for one. A
+test asserts those fields do not exist, because a field that exists gets printed
+eventually. See `decisions/0009`.
+
+**The oldest gap in the test suite is closed.** The partial-line path has been
+covered synthetically since milestone 1 and never against a real writer.
+`test_ingest_keeps_up_with_a_live_writer` runs a thread appending records in
+fragments while the reader catches up in a loop: every record arrives exactly
+once and the watermark ends at the end of the file.
+
+## Milestone 8 acceptance criteria
+
+Apply passes when a proposal from `patterns` — a permission rule, a slash
+command, a hook — can be written into the right settings file after showing the
+exact diff, and when refusing is the default. It must write only inside the
+project or the user scope, never into `~/.claude` state that is not
+configuration, and never without the human seeing the change first.
+
+⚠️ This is the first code in the project that **writes** anywhere. Non-negotiable
+1 says `~/.claude` is read-only, and `~/.claude/settings.json` is user-scope
+configuration inside it. That tension has to be resolved explicitly — probably
+by writing to the project scope by default and requiring an explicit flag for
+the user scope — rather than discovered halfway through the implementation.
 
 ## Open questions
 
