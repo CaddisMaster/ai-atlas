@@ -14,6 +14,7 @@ or when reversing it would break something non-obvious.
 | [0001](0001-config-resolves-across-all-scopes.md) | Config resolves across all scopes | Reading one scope and reporting on all of them produces confident lies |
 | [0002](0002-sqlite-not-postgres.md) | SQLite, not Postgres | A container between a stranger and their first number is fatal |
 | [0003](0003-filesystem-is-the-source-of-truth.md) | The filesystem is the source of truth | Hooks are a doorbell, never a delivery mechanism |
+| [0004](0004-a-scope-we-cannot-read-is-unknown.md) | A scope we cannot read is unknown | Absent, refused and malformed are three answers, not one |
 
 ## Format
 

@@ -54,9 +54,9 @@ def test_reingest_is_idempotent(conn, fake_home):
     assert second.bytes_read == 0, "nothing changed, so nothing should be re-read"
 
 
-def test_appended_lines_cost_only_the_new_bytes(conn, fake_home):
+def test_appended_lines_cost_only_the_new_bytes(conn, fake_home, main_transcript):
     ingest(conn, fake_home)
-    target = fake_home / "projects" / "-home-sean-demo" / "aaaa1111.jsonl"
+    target = main_transcript
     with target.open("a") as fh:
         fh.write(json.dumps({
             "type": "user", "uuid": "u2", "sessionId": "aaaa1111",
@@ -69,9 +69,9 @@ def test_appended_lines_cost_only_the_new_bytes(conn, fake_home):
     assert conn.execute("SELECT COUNT(*) n FROM messages").fetchone()["n"] == 4
 
 
-def test_truncation_forces_a_full_reread(conn, fake_home):
+def test_truncation_forces_a_full_reread(conn, fake_home, main_transcript):
     ingest(conn, fake_home)
-    target = fake_home / "projects" / "-home-sean-demo" / "aaaa1111.jsonl"
+    target = main_transcript
     target.write_text(json.dumps({
         "type": "user", "uuid": "u9", "sessionId": "aaaa1111",
         "timestamp": "2026-08-20T11:00:00Z", "message": {"role": "user", "content": "rotated"},
@@ -81,9 +81,9 @@ def test_truncation_forces_a_full_reread(conn, fake_home):
     assert res.bytes_read > 0, "a shrunken file must invalidate the watermark"
 
 
-def test_partial_final_line_is_left_for_next_run(conn, fake_home):
+def test_partial_final_line_is_left_for_next_run(conn, fake_home, main_transcript):
     """A session still being written ends mid-line. We must not consume it."""
-    target = fake_home / "projects" / "-home-sean-demo" / "aaaa1111.jsonl"
+    target = main_transcript
     with target.open("a") as fh:
         fh.write('{"type": "user", "uuid": "u3", "sessionId": "aaaa1111"')  # no newline
 
@@ -117,3 +117,17 @@ def test_subagent_identity_comes_from_the_path_not_the_record(conn, fake_home):
     # The subagent's tool call must be attributed to the subagent, not the parent.
     owner = conn.execute("SELECT session_id FROM tool_calls WHERE name = 'Grep'").fetchone()
     assert owner["session_id"] == "agent-b222"
+
+
+def test_sessions_record_the_project_root_they_ran_in(conn, fake_home, fake_project):
+    """Config is per project, so a session has to know which directory it ran in.
+
+    The name under `projects/` cannot be decoded — dashes stand for both a
+    separator and a literal dash — so the root comes from the record's `cwd`,
+    confirmed by encoding it back. Here `cwd` is a subdirectory on one record,
+    which is what a session that ran a command deeper in the tree looks like.
+    """
+    ingest(conn, fake_home)
+    roots = {r["kind"]: r["project_root"] for r in
+             conn.execute("SELECT kind, project_root FROM sessions")}
+    assert roots == {"main": str(fake_project), "subagent": str(fake_project)}

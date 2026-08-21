@@ -14,7 +14,13 @@ local scopes. `budget-buddy/.claude/` holds four subagents, a `/wrap` command, a
 and reporting on all of them produced confident, false findings.
 
 **Consequence:** scope resolution is `decisions/0001` and a milestone of its
-own, not an implementation detail.
+own, not an implementation detail. Landed 2026-08-21 and guarded by
+`test_project_scope_is_not_missed_by_a_user_scope_read`, which fails if a
+resolution ever reports on scopes it did not read.
+
+**Still true in a smaller way:** plugins supply commands, agents, skills and
+hooks, and nothing reads `~/.claude/plugins/` yet. The same class of wrong
+answer is available there — see `status.md`.
 
 ## "Claude Code transcripts don't disappear, so there is nothing at risk here"
 — 2026-08-20

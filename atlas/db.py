@@ -22,7 +22,22 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA.read_text())
+    _add_missing_columns(conn)
     return conn
+
+
+# Below 1.0 the schema rebuilds rather than migrates (VERSIONING.md), but a
+# column added to an existing table is one statement and the alternative is an
+# existing database failing with "no such column". Additive only — anything
+# that needs data moved is a rebuild.
+ADDED_COLUMNS = [("sessions", "project_root", "TEXT")]
+
+
+def _add_missing_columns(conn: sqlite3.Connection) -> None:
+    for table, column, decl in ADDED_COLUMNS:
+        have = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in have:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
 
 def note_record_type(conn: sqlite3.Connection, rtype: str, known: bool, ts: str | None) -> None:

@@ -36,13 +36,15 @@ somebody asks.
   an after, and is kept or discarded on the numbers.
 - **Now** — watches the running session and says when it is going backwards.
 
-Only ingest exists today. See [docs/status.md](docs/status.md).
+Ingest and config resolution exist today. See [docs/status.md](docs/status.md).
 
 ## Quick start
 
 ```bash
 python -m atlas ingest    # read new transcript content
 python -m atlas stats     # summarise what has been ingested
+python -m atlas config    # what is configured here, and which scope it came from
+python -m atlas config --all
 ```
 
 No dependencies and no install step — ingest is stdlib-only and SQLite ships
@@ -52,10 +54,15 @@ with `ATLAS_DB`.
 ## Measured on the machine it was written against
 
 ```
-22 transcript files · 52.7 MB · 8,067 messages · 2,590 tool calls
-18 main sessions + 4 subagent sessions · 6 days
-1.44B cache-read tokens · 99.2% cache hit rate
+25 transcript files · 54.1 MB · 8,455 messages · 2,709 tool calls
+21 main sessions + 4 subagent sessions · 4 projects · 7 days
+1.47B cache-read tokens · 99.2% cache hit rate
 ```
+
+`config` resolves one of those projects across six scopes and finds 4 subagents,
+1 slash command, 1 skill, 1 `Stop` hook and 30 permission rules — none of which
+appear in `~/.claude/settings.json`, which is the only file a naive read looks
+at.
 
 Second run of `ingest` reads **0 bytes**. Re-ingest costs new bytes only.
 

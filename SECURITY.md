@@ -22,6 +22,10 @@ That is not an overstatement, and the design follows from it.
 3. **The database is local.** `~/.local/share/ai-atlas/atlas.db` by default.
    It is as sensitive as the transcripts it was built from — back it up with
    the same care, or not at all.
+   Config snapshots keep settings **values**, which is where the droplet
+   hostnames and secret names above live. Only the first 200 characters plus a
+   hash are stored — enough to see a value change, not a second copy of
+   everything — but that is a reduction in exposure, not an absence of it.
 4. **`.gitignore` refuses `*.db`**, and `/scratch/` and `/exports/` alongside
    it. Nothing read out of `~/.claude` belongs in this repository.
 

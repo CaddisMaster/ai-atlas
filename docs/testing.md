@@ -7,15 +7,18 @@
 
 ## What the tests are for
 
-Nine tests, and the two that matter most are regressions for bugs found by
-running against **real data** rather than by reasoning about it:
+Twenty-seven tests. The ones that matter most are regressions for wrong answers
+found by running against **real data** rather than by reasoning about it:
 
+- `test_project_scope_is_not_missed_by_a_user_scope_read` — the false claim that
+  started the project: no hooks, no permissions, no skills, no slash commands,
+  all of them present one directory away.
 - `test_finds_subagent_transcripts_at_any_depth` — the two-level glob that
   dropped 4 of 22 files.
 - `test_subagent_identity_comes_from_the_path_not_the_record` — the parent's
   `sessionId` appearing inside a subagent transcript.
 
-A third, `test_appended_lines_cost_only_the_new_bytes`, failed on its first run
+Another, `test_appended_lines_cost_only_the_new_bytes`, failed on its first run
 and exposed a genuine defect: the watermark's prefix hash covered a fixed 4 KB
 window, so any file smaller than that invalidated its own watermark on every
 append. That is the whole argument for writing the acceptance test before
@@ -27,7 +30,22 @@ believing the implementation.
 beneath it. The subagent record carries the **parent's** `sessionId`, because
 real ones do. A tidier fixture would have hidden the bug it now guards.
 
+`fake_project` mirrors a real project's configuration in the same spirit: the
+hook path goes through `$CLAUDE_PROJECT_DIR`, the skill is a *directory* holding
+`SKILL.md` rather than a file named after itself, and `~/.claude.json` sits
+beside `~/.claude` rather than inside it.
+
+One fixture is deliberately ahead of reality: `allowedTools` is populated, while
+every real project on this machine has it empty. That code path has no live
+data behind it, which is worth knowing when it eventually misbehaves.
+
 ## What is not tested yet
 
 Ingest against a transcript that is actively being written. The partial-line
 path is covered synthetically, but not under a real concurrent writer.
+
+Enterprise managed policy with actual content. No such file exists on this
+machine, so the tests cover "unreadable" and "absent" but never a policy whose
+rules have to be merged with the rest.
+
+Plugins. `~/.claude/plugins/` is not read at all yet — see `status.md`.
