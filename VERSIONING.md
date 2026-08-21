@@ -30,11 +30,14 @@ tool at all.
 
 ## The measurement definitions have their own version too
 
-`atlas.baseline.BASELINE_VERSION` and `atlas.patterns.PATTERN_VERSION` cover
-**how something is counted**: which
+`atlas.baseline.BASELINE_VERSION`, `atlas.patterns.PATTERN_VERSION` and
+`atlas.interventions.INTERVENTION_VERSION` cover **how something is counted**: which
 sessions are eligible, the quantile convention, the outlier fence, the sample
 size below which no norm is stated, what counts as a repeated sequence and the
-lift below which it is a coincidence. Every stored measurement carries one.
+lift below which it is a coincidence, and the rules for deciding whether a
+before/after difference is a finding. Every stored measurement carries one — an
+intervention result carries two, because it depends on both how the metrics were
+computed and how the comparison was made.
 
 `PARSER_VERSION` says *what the transcript said*. `BASELINE_VERSION` says *what
 we made of it*. Both can change independently, and a comparison that spans a

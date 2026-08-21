@@ -251,3 +251,38 @@ CREATE TABLE IF NOT EXISTS pattern_permissions (
     rule       TEXT NOT NULL,
     PRIMARY KEY (run_id, signature)
 );
+
+-- Interventions: a change to how somebody works, and whether the numbers moved.
+-- Results carry both versions they depend on — the measurement definitions
+-- (baseline_version) and the comparison definitions (intervention_version).
+
+CREATE TABLE IF NOT EXISTS interventions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_root  TEXT,
+    happened      TEXT NOT NULL,   -- when the change took effect
+    kind          TEXT,
+    what          TEXT NOT NULL,
+    expectation   TEXT,            -- what the human was hoping for, in their words
+    source        TEXT NOT NULL,   -- manual | config-diff | mtime
+    evidence      TEXT,
+    recorded      TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS intervention_results (
+    intervention_id       INTEGER NOT NULL REFERENCES interventions(id),
+    metric                TEXT NOT NULL,
+    n_before              INTEGER NOT NULL,
+    n_after               INTEGER NOT NULL,
+    median_before         REAL,
+    median_after          REAL,
+    delta                 REAL,
+    p_value               REAL,
+    verdict               TEXT NOT NULL
+                          CHECK (verdict IN ('moved', 'no verdict', 'not enough sessions',
+                                             'cannot separate at this sample size')),
+    threshold             REAL NOT NULL,   -- alpha after correcting for metrics tested
+    intervention_version  INTEGER NOT NULL,
+    baseline_version      INTEGER NOT NULL,
+    computed              TEXT NOT NULL,
+    PRIMARY KEY (intervention_id, metric, intervention_version)
+);

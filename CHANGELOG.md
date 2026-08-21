@@ -6,6 +6,37 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Added — milestone 6, interventions
+
+- `python -m atlas intervention add` records a change to how you work with its
+  date and, in your own words, what you were hoping for. The expectation is
+  stored and **never scored** — checking whether the numbers agree with what
+  somebody already believed is the trap this subsystem exists to avoid.
+- `python -m atlas intervention detect` proposes changes from two sources:
+  differences between stored config snapshots (exact about what, vague about
+  when) and config file mtimes (exact about when, silent about what). Four real
+  changes were found inside the period the corpus covers.
+- `python -m atlas intervention list` splits a project's sessions by the date
+  and compares them on the metrics milestone 4 already stores, with an **exact
+  permutation test** — every relabelling enumerated, no distributional
+  assumption, no sampling, no seed at these sizes.
+- **Four outcomes, not two.** Beyond `moved` and `no verdict`, there is
+  `not enough sessions` and — the one that matters —
+  `cannot separate at this sample size`. Three sessions against three cannot
+  produce a p below 0.2 however cleanly the data separates, so the tool computes
+  the floor the split sizes admit *before* looking at the data and says when no
+  arrangement could have cleared the threshold. Eight sessions either side, at
+  thirteen metrics. See `docs/decisions/0008`.
+- The threshold is corrected for the number of metrics tested, and the
+  uncorrected p-value is printed next to it. Thirteen metrics at p < 0.05 turns
+  up one by chance.
+- A session in flight when a change landed belongs to neither side, and is
+  reported rather than assigned.
+- `INTERVENTION_VERSION` freezes the comparison rules. A result carries it *and*
+  `BASELINE_VERSION`, because it depends on how the metrics were computed as
+  well as on how they were compared.
+- 14 more tests, most of them about the refusals.
+
 ### Added — milestone 5, patterns
 
 - `python -m atlas patterns` finds tool sequences that repeat across sessions,

@@ -39,8 +39,7 @@ somebody asks.
   an after, and is kept or discarded on the numbers.
 - **Now** — watches the running session and says when it is going backwards.
 
-Ingest, config resolution, handoff, baselines and patterns exist today. See
-[docs/status.md](docs/status.md).
+Everything above the demo mode exists today. See [docs/status.md](docs/status.md).
 
 ## Quick start
 
@@ -52,6 +51,8 @@ python -m atlas config --all
 python -m atlas handoff   # what docs/status.md claims that the repo contradicts
 python -m atlas baseline  # what a normal session looks like here, and which were not
 python -m atlas patterns  # work that repeats, and the artifact that would capture it
+python -m atlas intervention detect   # changes to how you work, found in config and file times
+python -m atlas intervention list     # ...and whether the numbers moved
 ```
 
 No dependencies and no install step — ingest is stdlib-only and SQLite ships
@@ -88,6 +89,20 @@ than chance — never by how often it happens:
                               proposes a slash command
 8 sessions · 50× · lift   2   Bash:grep → Bash:sed        ← not reported: chance
 ```
+
+And `intervention` answers the question the whole thing is for — usually by
+refusing:
+
+```
+#2  settings.json rewritten (permissions)
+    landed  2026-08-17 12:34 UTC
+    verdict cannot be measured — 2 session(s) before, 7 after, and a side needs 3
+```
+
+Eight sessions either side are needed before *any* verdict is reachable, at
+thirteen metrics. The best-covered project here has ten in total. A tool that
+returned a verdict anyway would be laundering noise into evidence about
+somebody's own working habits — see [decision 0008](docs/decisions/0008-an-experiment-that-could-not-have-worked.md).
 
 Second run of `ingest` reads **0 bytes**. Re-ingest costs new bytes only.
 

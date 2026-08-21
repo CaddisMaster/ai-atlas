@@ -186,3 +186,32 @@ everywhere and land next to each other by arithmetic. Its lift is 2.0.
 
 Rank by lift, filter by lift, and keep support in sessions as a separate floor.
 See `decisions/0007`.
+
+## Three sessions against three cannot beat p = 0.2
+
+Twenty relabellings, four of which always tie with the real split. Perfectly
+separated data — 500 minutes against 1 minute — still scores 0.2. Eight either
+side is the first symmetric split that clears a threshold corrected for thirteen
+metrics.
+
+So a comparison can be impossible before the data is looked at, and saying "no
+verdict" there reads as *the change did nothing*. Compute the floor the sizes
+admit, and say `cannot separate at this sample size` instead. See
+`decisions/0008`.
+
+## A file mtime is the only date available for anything done before this tool
+
+Config snapshots only start when `atlas config` first runs, so every change made
+before that is invisible to snapshot diffing. `.claude/settings.json` and
+`CLAUDE.md` carry mtimes, which are exact about *when* and silent about *what*
+— and only report the **last** write, not each earlier one.
+
+Both detection paths are kept and labelled, because a sharp date with a vague
+description is still the difference between measurable and not.
+
+## A session in flight belongs to neither side
+
+A session that started before a change landed and ended after it saw both
+worlds. Counting it either way misstates which world it was in. It is excluded
+and reported — one of the thirteen real sessions is in exactly this position for
+two of the four detected changes.

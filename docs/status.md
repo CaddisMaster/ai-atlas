@@ -8,8 +8,8 @@
 
 ## Where things are — 2026-08-21
 
-**Milestones 1–5 of 9 are done.** Ingest, config resolution, handoff, baselines
-and patterns all work against real data.
+**Milestones 1–6 of 9 are done.** Ingest, config resolution, handoff, baselines,
+patterns and interventions all work against real data.
 
 ```
 25 transcript files · 54.1 MB · 8,455 messages · 2,709 tool calls
@@ -20,7 +20,8 @@ config resolved across 6 scopes, 16 paths checked per project
 handoff: 7 checks, clean on this repo, 2 bugs found on the sibling one
 baseline: a norm for 1 of 4 projects; the other 3 are told they have none
 patterns: 198 signatures from 20 tool names; rituals at lift 249, noise at 2
-88 tests · ruff clean
+interventions: 4 real changes detected; every one of them unmeasurable, and told so
+102 tests · ruff clean
 ```
 
 ## The roadmap
@@ -32,8 +33,8 @@ patterns: 198 signatures from 20 tool names; rituals at lift 249, noise at 2
 | 3 | Handoff — reconcile status.md against reality | ✅ done |
 | 4 | Baseline — per-project norms | ✅ done |
 | 5 | Patterns — repeated-sequence detection | ✅ done |
-| 6 | Interventions — before/after measurement | next |
-| 7 | Now — live session watchdog | |
+| 6 | Interventions — before/after measurement | ✅ done |
+| 7 | Now — live session watchdog | next |
 | 8 | Apply — write config with diff and confirmation | |
 | 9 | Demo mode — synthetic transcripts, public landing | |
 
@@ -123,22 +124,47 @@ Two things were settled by measuring rather than reasoning, both in
 One reported occurrence was checked by hand against the transcript before this
 was called done: `200ccdc1`, message `f784bcfa`, `git add -A && git commit …`.
 
-## Milestone 6 acceptance criteria
+## Milestone 6 acceptance criteria — met
 
-Interventions passes when a change to how you work — a rule added, a hook
-installed, a command written — can be recorded with its date, and the sessions
-before and after it compared on the metrics milestone 4 already stores.
+`atlas intervention detect` found four real changes inside the period the
+sessions cover, dated from file mtimes. `atlas intervention add` records one
+with the date and what the human was hoping for. `atlas intervention list`
+measures each against the metrics milestone 4 stores, splitting sessions by the
+date, and reports one of four outcomes.
 
-The hard part is the same as milestone 4's, one level up: with 10 sessions in
-the best-covered project, most before/after comparisons will not be able to
-say anything. The honest outcome — "4 sessions before, 6 after, the difference
-is well inside the noise" — has to be as easy to reach as a verdict, and the
-verdict has to be refused when the numbers cannot carry it.
+Every real one currently returns a refusal, which is the correct answer:
 
-⚠️ Config snapshots (milestone 2) are fingerprinted and dated, so the *timing*
-of a config change is already recorded. An intervention is mostly the join
-between that timeline and `session_metrics`, plus the human's note of what they
-were trying to achieve.
+```
+#2  settings.json rewritten (permissions)     2 sessions before,  7 after
+#1  rewrote CLAUDE.md                         9 sessions before,  0 after
+```
+
+**The finding of this milestone is a number.** Three sessions against three
+cannot produce a p-value below 0.2 however cleanly the data separates — four of
+the twenty relabellings always tie with the real split. Measured across sizes,
+**eight sessions either side** are needed before any verdict is reachable at a
+threshold corrected for thirteen metrics. The best-covered project here has ten
+sessions in total.
+
+So a comparison can be impossible before the data is looked at, and "no verdict"
+would misreport that as *the change did nothing*. There is a fourth outcome —
+`cannot separate at this sample size` — and `detect` prints the eight-a-side
+figure up front, because it is worth knowing before an experiment. See
+`decisions/0008`.
+
+## Milestone 7 acceptance criteria
+
+Now passes when, pointed at a session that is still being written, it reports
+what is happening in it against that project's baseline — and does it without
+reading the whole transcript, since the watermark already exists.
+
+It has to hold to the same line as milestone 6 one more time: a single session
+is n = 1. "This session is at the 90th percentile for tool calls" is a fact;
+"this session is going badly" is a judgement the numbers cannot support, and the
+screen must not imply it.
+
+⚠️ The partial-line path in ingest is covered synthetically but has never been
+run against a live writer. This milestone is where that gets tested for real.
 
 ## Open questions
 
@@ -149,6 +175,10 @@ were trying to achieve.
   plugins, so the code does not read it yet. A plugin supplies commands, agents,
   skills and hooks — every kind config resolution reports — and none of them are
   currently found. This is a known gap, not a solved problem.
+- **Paired comparison.** Comparing whole sessions treats them as
+  interchangeable. A comparison *within* sessions — the same task before and
+  after — would need far fewer of them, and needs its own definition of "the
+  same task". This is the most valuable open question on the list.
 - **Compound commands hide their tail.** `git add -A && git commit` signs as
   `git add`, so a ritual chained into one shell line is invisible to pattern
   detection. Fixing it needs more than one signature per tool call.
