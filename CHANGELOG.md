@@ -6,6 +6,57 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Added — an HTML report
+
+- ⚠️ Known gap, recorded in `docs/status.md` as the next thing to do: **the page
+  does not explain itself**. Shown the published example, a reader who had not
+  built it had no idea what they were looking at — it opens with a project name
+  and a wall of numbers, and every label assumes nine architecture decisions
+  have been read.
+
+- `python -m atlas report` writes **one self-contained HTML page** for a
+  project: handoff findings, configuration with provenance, repeated work,
+  session norms, recorded changes, and the live session if there is one.
+  `--open` opens it.
+- The page **requests nothing** when opened — no scripts, no webfonts, no
+  images. It carries project paths and command signatures, and once it is in a
+  browser none of this project's guarantees follow it. There is no JavaScript at
+  all: the rail is anchors, so it works without scripting and it prints.
+- Colour carries the state model instead of decorating it: pine is measured,
+  brass is unknown or untested, grey is absent, and clay — the only alarming
+  colour — is reserved for a claim the repository contradicts. **A refusal is
+  never styled as an error.**
+- `python -m atlas demo --html` renders the same page from the synthetic corpus,
+  which is the only version safe to publish.
+- Every figure comes from the same library the CLI uses; the renderer never
+  recomputes anything its own way. No screen grades a session, and a test
+  asserts the page never contains the words the original mockup used — "going
+  backwards", "spiral", "not holding". See `docs/decisions/0013`.
+- 8 more tests, including one that parses the generated markup for balance.
+
+### Fixed
+
+- Demo message uuids are unrelated to their session's id, as real ones are.
+  Deriving one from the other made every evidence line read "at demo0000
+  message demo0000".
+
+### Changed
+
+- **Three metrics are pre-registered for interventions instead of thirteen**:
+  `duration_min`, `user_turns`, `tools_per_turn` — one measure each of how long
+  a session takes, how much steering it needed, and how much got done per turn.
+  Correcting the threshold for thirteen metrics meant eight sessions either side
+  before any verdict was reachable; three needs six. Everything else is still
+  measured and shown with its before and after, and explicitly **not tested** —
+  choosing a metric after seeing it move is how a result gets manufactured. See
+  `docs/decisions/0012`.
+- `INTERVENTION_VERSION` is 2. Results computed under 1 corrected for thirteen
+  metrics and are not comparable with these.
+- The README leads with config resolution and handoff, which need no sample size
+  and are the reason to run this daily, rather than with the before/after
+  measurement that needs twelve sessions around a change. It also says plainly
+  how the tool is used: it is a CLI, there is no web UI.
+
 ### Added — milestone 9, demo
 
 - `python -m atlas demo` generates a synthetic corpus and runs every screen

@@ -2,83 +2,107 @@
 
 A measurement system for how you work with Claude Code.
 
-It reads `~/.claude` on your own machine, keeps a durable record of what
-transcripts say before Claude Code prunes them, and answers one question that a
-chat window structurally cannot: **did that change actually help?**
+It reads `~/.claude` on your own machine and keeps a durable record of what the
+transcripts say. Day to day it answers two questions a chat window cannot:
+**what is actually configured here, and where did each piece come from?** and
+**what does my status document claim that the repository contradicts?**
+
+Behind those sits the question it was built for — *did that change actually
+help?* — which needs more sessions than one person produces in a week. The tool
+is candid about that rather than guessing.
 
 > **Nothing leaves this machine.** Transcripts contain source code, credentials
 > that passed through shell output, and — if you use Claude Code at work —
 > employer data. See [SECURITY.md](SECURITY.md).
 
-## Why this exists rather than just asking Claude
+## What it does today
 
-Asking Claude to analyse your transcripts works, and it is the right tool for a
-one-off question. It fails at three things:
+Two of these need no sample size at all, and they are the reason to run it:
 
-| | asking in a session | ai-atlas |
-|---|---|---|
-| Reproducible measurement | a new script, and a new definition, every time | one frozen definition |
-| Sees across sessions | only what is in context | the whole corpus |
-| Judges a session from outside it | cannot — it *is* the session | separate process |
+**Config — what is actually configured here, and where each thing came from.**
+Claude Code resolves settings across enterprise, command-line, local, project,
+user and `~/.claude.json` scopes. Reading one of them and reporting on all of
+them produces confident, false answers — that specific mistake is what started
+this project. Every fact comes back with the file it came from, and a scope that
+could not be read is `unknown`, never `absent`.
 
-The third is the important one. A session cannot tell you it is going badly,
-and a longitudinal claim — *"this rule has been violated six times since you
-added it"* — needs a definition of "violated" that does not change each time
-somebody asks.
+**Handoff — what your status document claims that the repository contradicts.**
+A date older than the last commit, a milestone the changelog says has landed, a
+test count `pytest` disagrees with, a link to a file that no longer exists. It
+found two real defects in a sibling project the first time it was pointed at
+one, and it has caught this project's own stale claims twice.
 
-## What it does
+Then two that describe rather than judge:
 
-- **Handoff** — checks `docs/status.md` against git, the changelog, the test
-  collector and the filesystem, and reports what has gone stale. Open PRs too,
-  with `--github`, which is the only thing here that touches the network.
-- **Patterns** — finds work you repeat by hand and proposes the artifact that
-  captures it: a slash command, a rule, a permission, a subagent, a hook.
-- **Baseline** — what a normal session looks like in a project, with the
-  sample size attached, and which sessions were not normal.
-- **Interventions** — every change you make to how you work gets a before and
-  an after, and is kept or discarded on the numbers.
-- **Now** — watches the running session and says when it is going backwards.
+**Patterns** — tool sequences that repeat across sessions, ranked by how much
+more often they happen than chance would predict, with the artifact each one
+suggests. **Now** — what the session being written right now is doing, placed
+among that project's past sessions, with no score attached.
 
-All of it exists today. See [docs/status.md](docs/status.md).
+**Apply** writes an accepted proposal into a settings file, after showing the
+diff and refusing by default.
 
-## See it working without any data of your own
+## The long game: did that change actually help?
 
-```bash
-python -m atlas demo
+**Baseline** and **interventions** are the reason the rest exists, and they are
+honest about needing more data than one person produces quickly:
+
+```
+a norm needs                    5 sessions in a project
+a before/after verdict needs    6 sessions either side of the change
 ```
 
-Generates a synthetic corpus — nothing recorded, every command from an invented
-vocabulary — and runs every screen against it. It contains its own refusals on
-purpose: a project too small to have a normal, a change too late to measure,
-metrics that did not clear the threshold next to ones that did. An accurate
-advertisement rather than a good one; see
-[decision 0011](docs/decisions/0011-the-demo-must-not-flatter-the-tool.md).
+On the corpus this was written against — four projects, one week — three
+projects have no norm and every recorded change is unmeasurable. The tool says
+so rather than producing a number:
 
-## Quick start
-
-```bash
-python -m atlas ingest    # read new transcript content
-python -m atlas stats     # summarise what has been ingested
-python -m atlas config    # what is configured here, and which scope it came from
-python -m atlas config --all
-python -m atlas handoff   # what docs/status.md claims that the repo contradicts
-python -m atlas baseline  # what a normal session looks like here, and which were not
-python -m atlas patterns  # work that repeats, and the artifact that would capture it
-python -m atlas intervention detect   # changes to how you work, found in config and file times
-python -m atlas intervention list     # ...and whether the numbers moved
-python -m atlas now --watch 5         # what the session being written is doing
-python -m atlas apply <project> --rule 'Bash(rg:*)'          # shows the diff, writes nothing
-python -m atlas apply <project> --rule 'Bash(rg:*)' --yes    # ...and now writes it
+```
+#2  settings.json rewritten (permissions)
+    verdict cannot be measured — 2 session(s) before, 7 after, and a side needs 3
 ```
 
-`apply` is the only thing here that writes. Project scope is the default and
-cannot resolve inside `~/.claude`; the user settings file is opt-in by name and
-is the only file under `~/.claude` this tool will ever touch. Backups are kept
-outside it. See [SECURITY.md](SECURITY.md).
+That is the design working. Six of the nine milestones went into deciding when
+*not* to answer: no norm below five sessions, no verdict when the split sizes
+could not have produced one whatever the data did, no grade on a single session,
+no permission claim without resolved rules. A tool that returns a number anyway
+launders noise into evidence about your own working habits.
 
-No dependencies and no install step — ingest is stdlib-only and SQLite ships
-with Python. The database lands at `~/.local/share/ai-atlas/atlas.db`; override
-with `ATLAS_DB`.
+## How you actually use it
+
+A CLI you run in a project directory — plus one HTML page when you want to read
+it rather than scan it:
+
+```bash
+python -m atlas report --open      # a self-contained page for this project
+```
+
+That page is generated locally, carries its data inline, and **requests nothing
+when you open it — not even fonts**. It is built from your transcripts, so it
+stays on your disk; the [published example](https://claude.ai/code/artifact/7a42720c-0382-4381-b615-552afd57108b)
+is the synthetic demo corpus, which is safe to share because none of it is real.
+
+```bash
+python -m atlas ingest                 # costs new bytes only; safe to run often
+python -m atlas handoff                # at the START of a session
+python -m atlas config                 # when you wonder what is switched on here
+python -m atlas patterns               # every week or so
+python -m atlas now --watch 5          # in a second pane, while you work
+python -m atlas apply . --rule '...'   # when you decide to act on a proposal
+```
+
+A realistic loop:
+
+1. **Start of a session:** `handoff`, to find out what the status document is
+   lying about before you trust it.
+2. **Now and then:** `ingest` — or let it run from a `Stop` hook, since
+   correctness never depends on the hook firing.
+3. **Weekly:** `patterns` for repeated work worth capturing, `config` before
+   claiming you have not configured something.
+4. **When you change how you work:** `apply` records it automatically, or
+   `intervention add` if you changed it by hand. Then wait. Twelve sessions
+   around the change is roughly two weeks of steady work on one project — and
+   `intervention list` will keep saying "cannot be measured" until it gets
+   there, which is the truthful answer.
 
 ## Measured on the machine it was written against
 
@@ -111,19 +135,11 @@ than chance — never by how often it happens:
 8 sessions · 50× · lift   2   Bash:grep → Bash:sed        ← not reported: chance
 ```
 
-And `intervention` answers the question the whole thing is for — usually by
-refusing:
-
-```
-#2  settings.json rewritten (permissions)
-    landed  2026-08-17 12:34 UTC
-    verdict cannot be measured — 2 session(s) before, 7 after, and a side needs 3
-```
-
-Eight sessions either side are needed before *any* verdict is reachable, at
-thirteen metrics. The best-covered project here has ten in total. A tool that
-returned a verdict anyway would be laundering noise into evidence about
-somebody's own working habits — see [decision 0008](docs/decisions/0008-an-experiment-that-could-not-have-worked.md).
+Every change recorded so far is unmeasurable, and is told so: six sessions
+either side is twelve around one change, and no project here has that yet.
+Three metrics are pre-registered so that the correction for multiple
+comparisons does not eat the evidence — see
+[decision 0012](docs/decisions/0012-three-metrics-chosen-in-advance.md).
 
 Second run of `ingest` reads **0 bytes**. Re-ingest costs new bytes only.
 

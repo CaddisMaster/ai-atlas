@@ -1,6 +1,8 @@
 # 0008 — "Could not have found anything" is a different answer from "found nothing"
 
-**Status:** accepted, 2026-08-21
+**Status:** accepted, 2026-08-21. The sample sizes below were measured against
+thirteen metrics; [0012](0012-three-metrics-chosen-in-advance.md) cuts that to
+three and the figure to six either side. The reasoning is unchanged.
 
 ## Context
 

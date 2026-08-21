@@ -7,7 +7,7 @@
 
 ## What the tests are for
 
-One hundred and thirty-seven tests. The ones that matter most are regressions for wrong answers
+One hundred and forty-six tests. The ones that matter most are regressions for wrong answers
 found by running against **real data** rather than by reasoning about it:
 
 - `test_project_scope_is_not_missed_by_a_user_scope_read` — the false claim that
@@ -31,6 +31,12 @@ believing the implementation.
 `test_the_demo_shows_refusals_as_well_as_findings` guards the demo against
 itself: the same measurement has to contain a `moved` **and** a `no verdict`. If
 the generator is ever tuned until everything moves, that test fails.
+
+The report tests guard two things nothing else can: that the page requests
+**nothing** when opened, and that it never says about a session what the mockup
+this design came from said — "going backwards", "spiral", "not holding". A list
+of forbidden words is a blunt instrument and exactly right here, because the
+temptation is a UI one.
 
 The apply tests are almost entirely refusals — a symlink out of the project,
 any path under `~/.claude` that is not `settings.json`, a malformed file, a

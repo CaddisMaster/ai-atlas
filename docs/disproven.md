@@ -41,3 +41,19 @@ Never stated outright, but assumed while producing statistics with throwaway
 scripts. Two of those analyses were wrong: one dropped 4 of 22 files, the other
 would have merged subagents into their parents. Both errors were silent and
 both were in data being looked at directly.
+
+## "The mockup is a specification" — 2026-08-20
+
+**Believed because** it was detailed, it looked right, and its four findings
+were specific enough to act on.
+
+**Wrong because** every one of those findings was produced by reading one scope
+— `docs/decisions/0001` — and two of its screens made claims the sample sizes
+could not support: a verdict on a single session, and rule verdicts at nine to
+fifteen sessions with no caveat. Its own footnote admitted the session rows were
+illustrative.
+
+**Consequence:** the HTML report reuses the mockup's *design* and none of its
+claims, and `decisions/0013` fixes what a rendered page is allowed to say. The
+mockup stays published: it is the clearest record of what this project believed
+before it measured anything.
