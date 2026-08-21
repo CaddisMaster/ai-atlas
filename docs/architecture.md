@@ -56,6 +56,10 @@ session is safe to read at any moment.
 | `baseline_outliers` | sessions outside the band, and on which metric |
 | `baseline_exclusions` | sessions left out, and why |
 | `session_metrics` | the per-session measurement itself |
+| `pattern_runs` | one mining pass over one project |
+| `patterns` | sequences that repeat, with support and lift |
+| `pattern_occurrences` | every occurrence, with the message it started at |
+| `pattern_permissions` | repeated calls no allow rule covers |
 
 Not yet built: `edits`, `classifications`, `interventions`. See `status.md`.
 
@@ -119,6 +123,28 @@ machine do not have enough history to have a normal. See `decisions/0006`.
 Every definition is frozen under `BASELINE_VERSION`, separately from
 `PARSER_VERSION`: one says what the transcript said, the other says what we made
 of it.
+
+## Patterns
+
+```
+tool calls ──signature──▶ Bash:git add · Edit:.py · Skill:verify
+              collapse ──▶ consecutive repeats squashed
+                n-grams ──▶ support ≥ 3 sessions ──▶ lift ≥ 3 ──▶ longest wins
+                                                          │
+                            proposal: slash command · hook ┘
+```
+
+The signature is the milestone's real content: 89% of calls are `Bash`, so tool
+names cannot show repetition, and 198 signatures replaced 20 names. It is lossy
+on purpose — `Bash:git commit` and never the message.
+
+Ranking is by **lift**, not frequency. The most frequent pair in the corpus is
+`grep → sed` at a lift of 2.0, which is what chance predicts; the release ritual
+`git add → git push → gh pr` scores 249. See `decisions/0007`.
+
+Repeated single calls take the other path: a signature used often that no allow
+rule covers is a permission proposal — and with no resolved config to check
+against, no claim is made at all.
 
 ## What is deliberately absent
 

@@ -16,6 +16,9 @@ from .handoff import run as handoff_run
 from .handoff import save as handoff_save
 from .ingest import ingest
 from .paths import claude_home
+from .patterns import MIN_SUPPORT
+from .patterns import find as patterns_find
+from .patterns import save as patterns_save
 
 
 def cmd_ingest(args) -> int:
@@ -317,6 +320,54 @@ def cmd_baseline(args) -> int:
     return 0
 
 
+def cmd_patterns(args) -> int:
+    conn = connect(args.db)
+    target = _target(conn, args.project)
+    if target is None:
+        return 1
+    report = patterns_find(conn, str(target), kind=args.kind)
+
+    if args.json:
+        print(json.dumps({
+            "project_root": report.project_root, "kind": report.kind,
+            "n_sessions": report.n_sessions, "n_calls": report.n_calls,
+            "patterns": [{"sequence": p.text, "support": p.support, "occurrences": p.count,
+                          "proposal": p.proposal, "why": p.why,
+                          "seen": [vars(o) for o in p.occurrences]} for p in report.patterns],
+            "permissions": [vars(p) for p in report.permissions],
+            "notes": report.notes,
+        }, indent=2))
+        return 0
+
+    print(f"project   {report.project_root}")
+    print(f"sessions  {report.n_sessions} · {report.n_calls:,} tool calls")
+
+    print(f"\nsequences that repeat (in {MIN_SUPPORT}+ sessions)")
+    if not report.patterns:
+        print("  none — which is an answer, not an empty result")
+    for pattern in report.patterns[:args.limit]:
+        print(f"\n  {pattern.support} sessions · {pattern.count}× · "
+              f"lift {pattern.lift:.0f}   {pattern.text}")
+        print(f"      proposes  {pattern.proposal} — {pattern.why}")
+        for occurrence in pattern.occurrences[:3]:
+            print(f"      seen in   {occurrence.session_id[:8]} "
+                  f"at message {occurrence.message_uuid[:8]} (call {occurrence.position})")
+
+    if report.permissions:
+        print("\nrepeated calls no allow rule covers")
+        for proposal in report.permissions[:args.limit]:
+            print(f"  {proposal.calls:>5}×  {proposal.signature:<26}"
+                  f"{proposal.sessions} sessions   proposes  {proposal.rule}")
+
+    for note in report.notes:
+        print(f"\n⚠️  {note}")
+
+    if not args.no_save:
+        run_id, is_new = patterns_save(conn, report)
+        print(f"\nrun {run_id}" + ("" if is_new else " (unchanged, reused)"))
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="atlas", description="Measure how you work with Claude Code.")
     p.add_argument("--version", action="version", version=f"ai-atlas {__version__} (parser v{PARSER_VERSION})")
@@ -351,6 +402,14 @@ def main(argv=None) -> int:
     bl.add_argument("--json", action="store_true", help="summaries, outliers and raw values")
     bl.add_argument("--no-save", action="store_true", help="do not store the baseline")
     bl.set_defaults(fn=cmd_baseline)
+
+    pt = sub.add_parser("patterns", help="work that repeats, and the artifact that would capture it")
+    pt.add_argument("project", nargs="?", help="project directory, or part of a known project path")
+    pt.add_argument("--kind", default="main", choices=("main", "subagent"))
+    pt.add_argument("--limit", type=int, default=8, help="how many to show (default 8)")
+    pt.add_argument("--json", action="store_true", help="every pattern with every occurrence")
+    pt.add_argument("--no-save", action="store_true", help="do not store the run")
+    pt.set_defaults(fn=cmd_patterns)
 
     args = p.parse_args(argv)
     return args.fn(args)

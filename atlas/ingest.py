@@ -20,6 +20,7 @@ from pathlib import Path
 from . import PARSER_VERSION
 from .db import note_record_type
 from .paths import classify, project_root_for, transcript_files
+from .signature import tool_signature
 
 PREFIX_BYTES = 4096
 
@@ -203,13 +204,15 @@ def _ingest_file(conn, path: Path, root: Path | None, res: Result) -> None:
             if isinstance(content, list):
                 for seq, block in enumerate(content):
                     if isinstance(block, dict) and block.get("type") == "tool_use":
+                        name = block.get("name") or "?"
                         conn.execute(
                             """
-                            INSERT INTO tool_calls (message_uuid, seq, session_id, name)
-                            VALUES (?, ?, ?, ?)
+                            INSERT INTO tool_calls (message_uuid, seq, session_id, name, signature)
+                            VALUES (?, ?, ?, ?, ?)
                             ON CONFLICT(message_uuid, seq) DO NOTHING
                             """,
-                            (uuid, seq, session_id, block.get("name") or "?"),
+                            (uuid, seq, session_id, name,
+                             tool_signature(name, block.get("input"))),
                         )
                         res.tool_calls += 1
 

@@ -17,6 +17,7 @@ or when reversing it would break something non-obvious.
 | [0004](0004-a-scope-we-cannot-read-is-unknown.md) | A scope we cannot read is unknown | Absent, refused and malformed are three answers, not one |
 | [0005](0005-offline-by-default-github-is-opt-in.md) | Offline by default, GitHub opt-in | The promise is about the data, not the socket |
 | [0006](0006-a-norm-needs-a-floor.md) | A norm needs a floor | Three sessions is arithmetic, not a normal |
+| [0007](0007-lift-not-frequency.md) | Lift, not frequency | The most common pair in the corpus means nothing |
 
 ## Format
 

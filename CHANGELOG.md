@@ -6,6 +6,45 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Added — milestone 5, patterns
+
+- `python -m atlas patterns` finds tool sequences that repeat across sessions,
+  shows the session and message each occurrence started at so the claim can be
+  checked by hand, and proposes the artifact that fits its shape — a slash
+  command, or a hook when the sequence keeps landing at the end of a session.
+- **Every tool call carries a signature**: the first two meaningful words of a
+  shell command, the extension of a file touched, the name of a skill invoked.
+  198 distinct signatures where there were 20 tool names. 89% of calls in the
+  corpus are `Bash`, so the tool name alone cannot show repetition.
+  `PARSER_VERSION` is now 3.
+- **Ranking is by lift, never frequency.** The most common pair in the corpus,
+  `grep → sed` in 8 sessions, scores 2.0 — what chance predicts. The release
+  ritual `git add → git push → gh pr` scores 249 on four occurrences. Ranking by
+  frequency buried every real pattern. See `docs/decisions/0007`.
+- Consecutive repeats are collapsed before mining: the number of greps in a row
+  varies, the shape is what repeats. A run of one call can therefore never be
+  reported as a sequence — repetition is a permission question instead.
+- A signature used often that no allow rule in any scope covers is a permission
+  proposal, with the rule that would cover it. With no resolved config to check
+  against, **no claim is made** — "no rule covers this" is a claim about every
+  scope, which is what milestone 2 exists to get right.
+- A command line never reaches the database. `SECURITY.md` guarantee 4 is new
+  and says so.
+- `PATTERN_VERSION` freezes the thresholds, the lift floor, the collapsing rule
+  and the subsumption rule.
+- 32 more tests, including the signature cases copied out of real commands.
+
+### Fixed — found by running over 2,780 real tool calls
+
+- Multi-line commands are split correctly. A third of real commands look like
+  `cd /path\nsed …`, and splitting on `&&`, `;` and `|` but not `\n` left the
+  `cd` in front of everything: 48 calls landed in a bucket named `?`.
+- `echo "=== x ==="; tmux capture-pane` signs as `tmux capture-pane`. An echo in
+  front of a command is a label, not the work.
+- `pattern_occurrences` is keyed on the position in the session, not the message
+  uuid. One assistant message can make several tool calls, so two occurrences of
+  a sequence can start in the same message.
+
 ### Added — milestone 4, baselines
 
 - `python -m atlas baseline` states what a normal session looks like in one

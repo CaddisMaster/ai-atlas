@@ -32,7 +32,12 @@ That is not an overstatement, and the design follows from it.
    hostnames and secret names above live. Only the first 200 characters plus a
    hash are stored — enough to see a value change, not a second copy of
    everything — but that is a reduction in exposure, not an absence of it.
-4. **`.gitignore` refuses `*.db`**, and `/scratch/` and `/exports/` alongside
+4. **Commands are reduced before they are stored.** A tool call is kept as a
+   signature — `Bash:git commit`, `Edit:.py` — never as the command line it came
+   from. The database learns that you commit often and never learns what you
+   committed, which matters because shell commands carry paths, hostnames and
+   the occasional pasted secret. See `atlas/signature.py`.
+5. **`.gitignore` refuses `*.db`**, and `/scratch/` and `/exports/` alongside
    it. Nothing read out of `~/.claude` belongs in this repository.
 
 ## When a model is involved

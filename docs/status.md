@@ -8,8 +8,8 @@
 
 ## Where things are — 2026-08-21
 
-**Milestones 1–4 of 9 are done.** Ingest, config resolution, handoff and
-baselines all work against real data.
+**Milestones 1–5 of 9 are done.** Ingest, config resolution, handoff, baselines
+and patterns all work against real data.
 
 ```
 25 transcript files · 54.1 MB · 8,455 messages · 2,709 tool calls
@@ -19,7 +19,8 @@ every session tied to the project root it ran in
 config resolved across 6 scopes, 16 paths checked per project
 handoff: 7 checks, clean on this repo, 2 bugs found on the sibling one
 baseline: a norm for 1 of 4 projects; the other 3 are told they have none
-56 tests · ruff clean
+patterns: 198 signatures from 20 tool names; rituals at lift 249, noise at 2
+88 tests · ruff clean
 ```
 
 ## The roadmap
@@ -30,8 +31,8 @@ baseline: a norm for 1 of 4 projects; the other 3 are told they have none
 | 2 | Config resolution across all scopes | ✅ done |
 | 3 | Handoff — reconcile status.md against reality | ✅ done |
 | 4 | Baseline — per-project norms | ✅ done |
-| 5 | Patterns — repeated-sequence detection | next |
-| 6 | Interventions — before/after measurement | |
+| 5 | Patterns — repeated-sequence detection | ✅ done |
+| 6 | Interventions — before/after measurement | next |
 | 7 | Now — live session watchdog | |
 | 8 | Apply — write config with diff and confirmation | |
 | 9 | Demo mode — synthetic transcripts, public landing | |
@@ -95,21 +96,49 @@ the output says why: the middle half of `tool_calls` runs 68 to 343, so the
 Tukey fence reaches 755 and would catch almost nothing. That is a true statement
 about ten sessions, and it is more useful than a confident-looking threshold.
 
-## Milestone 5 acceptance criteria
+## Milestone 5 acceptance criteria — met
 
-Patterns passes when, from ingested data alone, it names a tool sequence that
-repeats across sessions, shows the sessions and turns it occurred in so the
-claim can be checked by hand, and proposes the artifact that would capture it —
-a slash command, a rule, a permission, a subagent, a hook.
+`python -m atlas patterns` names sequences that repeat across sessions, shows
+the session and message each occurrence started at, and proposes the artifact
+that fits — and tells a project with one session that it has nothing to say.
 
-It has to be able to find nothing. A project with one session, or with no
-repeated sequence above the threshold, gets told that; proposing an artifact on
-a single occurrence is how a tool teaches somebody to ignore it.
+```
+4 sessions ·  4× · lift 249   Bash:git add → Bash:git push → Bash:gh pr
+3 sessions · 21× · lift 370   Edit:.md → Read:.md → Edit:.md
+3 sessions ·  3× · lift 151   Bash:docker build → Bash:docker run
+276 calls in 9 sessions       Bash:grep — no allow rule in any scope covers it
+```
 
-⚠️ 89% of tool calls in the corpus are `Bash`, so sequence detection over tool
-*names* will find `Bash → Bash → Bash` and nothing else. The unit has to carry
-more than the tool name — the command's first word or two, the file extension
-touched — and choosing that unit is most of this milestone.
+Two things were settled by measuring rather than reasoning, both in
+`decisions/0007`:
+
+- **The unit.** 89% of calls are `Bash`, so tool names show nothing. A signature
+  — the first two meaningful words of a command, a file's extension, a skill's
+  name — gives 198 distinct units from 20 tool names, and never stores a command
+  line.
+- **The ranking.** The most frequent pair in the corpus, `grep → sed` in 8
+  sessions, has a lift of 2.0 — chance. Ranking by frequency buried every real
+  ritual. Lift floor 3.0, support floor 3 sessions.
+
+One reported occurrence was checked by hand against the transcript before this
+was called done: `200ccdc1`, message `f784bcfa`, `git add -A && git commit …`.
+
+## Milestone 6 acceptance criteria
+
+Interventions passes when a change to how you work — a rule added, a hook
+installed, a command written — can be recorded with its date, and the sessions
+before and after it compared on the metrics milestone 4 already stores.
+
+The hard part is the same as milestone 4's, one level up: with 10 sessions in
+the best-covered project, most before/after comparisons will not be able to
+say anything. The honest outcome — "4 sessions before, 6 after, the difference
+is well inside the noise" — has to be as easy to reach as a verdict, and the
+verdict has to be refused when the numbers cannot carry it.
+
+⚠️ Config snapshots (milestone 2) are fingerprinted and dated, so the *timing*
+of a config change is already recorded. An intervention is mostly the join
+between that timeline and `session_metrics`, plus the human's note of what they
+were trying to achieve.
 
 ## Open questions
 
@@ -120,6 +149,9 @@ touched — and choosing that unit is most of this milestone.
   plugins, so the code does not read it yet. A plugin supplies commands, agents,
   skills and hooks — every kind config resolution reports — and none of them are
   currently found. This is a known gap, not a solved problem.
+- **Compound commands hide their tail.** `git add -A && git commit` signs as
+  `git add`, so a ritual chained into one shell line is invisible to pattern
+  detection. Fixing it needs more than one signature per tool call.
 - **`--github` is untested and unverifiable offline.** It is the only path in
   the project the test suite cannot exercise. See `decisions/0005`.
 - **`file-history/`** (6.1 MB) is unread. It is the direct route to detecting

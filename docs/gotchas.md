@@ -149,3 +149,40 @@ stale.
 Headings only. Found by handoff, in this repository, one commit after the
 sentence was written — which is the best evidence so far that the milestone
 was worth building.
+
+## A third of shell commands are multi-line
+
+`cd /home/sean/project\nsed -n '60,120p' test.sh` is one `Bash` call with a
+newline in it. Splitting commands on `&&`, `;` and `|` but not `\n` left the
+`cd` in front of everything, and 48 calls landed in a bucket named `?`.
+
+Newlines separate commands as surely as `&&` does. Guarded by
+`test_a_command_reduces_to_its_first_two_meaningful_words`.
+
+## A compound command hides everything after the first program
+
+`git add -A && git commit -q -F -` signs as `Bash:git add`. The commit is
+invisible, so a ritual somebody chained into one shell line is invisible too —
+sequence detection only sees rituals spread across separate calls.
+
+Not fixed: it needs more than one signature per tool call, and the schema is one
+row per call. Worth knowing before concluding that somebody has no habits.
+
+## One assistant message can make several tool calls
+
+So a message uuid does not identify an occurrence of anything. Keying
+`pattern_occurrences` on `(run, sequence, session, message_uuid)` collides the
+moment two calls in one message start the same sequence — which a test fixture
+hit immediately, because a fixture puts every call in one message.
+
+The position in the session's sequence is the identifier. The message uuid stays
+alongside it, because that is what makes a finding checkable by hand.
+
+## The most frequent sequence is the least meaningful one
+
+`grep → sed`, in 8 sessions, 50 times, is not a habit — both tools are
+everywhere and land next to each other by arithmetic. Its lift is 2.0.
+`git add → git push → gh pr` happens 4 times and scores 249.
+
+Rank by lift, filter by lift, and keep support in sessions as a separate floor.
+See `decisions/0007`.

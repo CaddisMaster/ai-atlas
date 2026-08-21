@@ -30,7 +30,7 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
 # column added to an existing table is one statement and the alternative is an
 # existing database failing with "no such column". Additive only — anything
 # that needs data moved is a rebuild.
-ADDED_COLUMNS = [("sessions", "project_root", "TEXT")]
+ADDED_COLUMNS = [("sessions", "project_root", "TEXT"), ("tool_calls", "signature", "TEXT")]
 
 
 def _add_missing_columns(conn: sqlite3.Connection) -> None:
