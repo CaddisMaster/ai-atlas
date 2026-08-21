@@ -17,6 +17,7 @@ keeps a durable record, and answers *did that change actually help?*
 | What we believed that was wrong | [docs/disproven.md](docs/disproven.md) |
 | Handling transcript data | [SECURITY.md](SECURITY.md) |
 | How versions work | [VERSIONING.md](VERSIONING.md) |
+| What the HTML report may claim | [docs/decisions/0013](docs/decisions/0013-the-page-may-not-say-more-than-the-tool.md) |
 
 ## Non-negotiables
 

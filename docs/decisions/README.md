@@ -23,6 +23,7 @@ or when reversing it would break something non-obvious.
 | [0010](0010-writing-is-narrowed-not-excepted.md) | Writing is narrowed, not excepted | The protected thing is the record, not the directory |
 | [0011](0011-the-demo-must-not-flatter-the-tool.md) | The demo must not flatter the tool | An accurate advertisement, not a good one |
 | [0012](0012-three-metrics-chosen-in-advance.md) | Three metrics, chosen in advance | The correction was eating the evidence |
+| [0013](0013-the-page-may-not-say-more-than-the-tool.md) | The page may not say more than the tool | The mockup that started this was confidently wrong |
 
 ## Format
 

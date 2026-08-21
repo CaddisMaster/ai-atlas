@@ -69,7 +69,17 @@ launders noise into evidence about your own working habits.
 
 ## How you actually use it
 
-There is no web UI. It is a CLI you run in a project directory.
+A CLI you run in a project directory — plus one HTML page when you want to read
+it rather than scan it:
+
+```bash
+python -m atlas report --open      # a self-contained page for this project
+```
+
+That page is generated locally, carries its data inline, and **requests nothing
+when you open it — not even fonts**. It is built from your transcripts, so it
+stays on your disk; the [published example](https://claude.ai/code/artifact/7a42720c-0382-4381-b615-552afd57108b)
+is the synthetic demo corpus, which is safe to share because none of it is real.
 
 ```bash
 python -m atlas ingest                 # costs new bytes only; safe to run often

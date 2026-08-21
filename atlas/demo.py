@@ -100,8 +100,14 @@ def _tool_use(name: str, command: str | None = None, path: str | None = None) ->
 
 def _session_records(rng: random.Random, session_id: str, cwd: str, start: datetime,
                      calls: list[dict], turns: int, abandoned: bool = False) -> list[dict]:
+    # ⚠️ A message uuid is unrelated to its session's id in real transcripts, and
+    # evidence lines print the first characters of both. Deriving one from the
+    # other made every citation read "at demo0000 message demo0000".
+    def uuid(role: str, n: int) -> str:
+        return f"{role}{n:03x}{session_id[4:]}"
+
     records: list[dict] = [{
-        "type": "user", "uuid": f"{session_id}-u0", "sessionId": session_id, "cwd": cwd,
+        "type": "user", "uuid": uuid("u", 0), "sessionId": session_id, "cwd": cwd,
         "timestamp": start.isoformat().replace("+00:00", "Z"),
         "message": {"role": "user", "content": "pick up where we left off"},
     }]
@@ -120,8 +126,8 @@ def _session_records(rng: random.Random, session_id: str, cwd: str, start: datet
         when += timedelta(minutes=rng.uniform(0.5, 4.0))
         mine = calls[turn * per_turn:(turn + 1) * per_turn]
         records.append({
-            "type": "assistant", "uuid": f"{session_id}-a{turn}",
-            "parentUuid": f"{session_id}-u{turn}", "sessionId": session_id, "cwd": cwd,
+            "type": "assistant", "uuid": uuid("a", turn),
+            "parentUuid": uuid("u", turn), "sessionId": session_id, "cwd": cwd,
             "timestamp": when.isoformat().replace("+00:00", "Z"),
             "message": {"role": "assistant",
                         "usage": {"input_tokens": rng.randint(20, 200),
@@ -132,8 +138,8 @@ def _session_records(rng: random.Random, session_id: str, cwd: str, start: datet
         })
         when += timedelta(minutes=rng.uniform(0.5, 3.0))
         records.append({
-            "type": "user", "uuid": f"{session_id}-u{turn + 1}",
-            "parentUuid": f"{session_id}-a{turn}", "sessionId": session_id, "cwd": cwd,
+            "type": "user", "uuid": uuid("u", turn + 1),
+            "parentUuid": uuid("a", turn), "sessionId": session_id, "cwd": cwd,
             "timestamp": when.isoformat().replace("+00:00", "Z"),
             "message": {"role": "user", "content": "carry on"},
         })

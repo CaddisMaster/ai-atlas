@@ -226,6 +226,22 @@ Generated, never recorded: every command comes from an invented vocabulary and a
 test asserts nothing else appears. The corpus contains its own refusals on
 purpose — see `decisions/0011`.
 
+## Report
+
+One self-contained HTML file, generated locally, data inline. No scripts, no
+webfonts, no requests of any kind when it opens — the page carries project paths
+and command signatures, and once it is in a browser none of this project's
+guarantees follow it. The rail is anchors, so it works without JavaScript and it
+prints.
+
+Colour carries the state model rather than decorating it: pine is measured,
+brass is unknown or untested, clay is a claim the repository contradicts, grey
+is absent. **A refusal is never styled as an error** — it is the correct answer
+to most questions asked here.
+
+`atlas demo --html` renders the same page from the synthetic corpus, which is
+the only version safe to publish.
+
 ## What is deliberately absent
 
 **No server, no container, no Postgres.** The product only works if a stranger

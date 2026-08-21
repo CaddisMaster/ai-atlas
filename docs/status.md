@@ -26,7 +26,8 @@ now: watched this session write itself — 4.5 KB, 0 KB, 6.4 KB across three fra
 apply: writes one file kind, refuses everything else, records what it did
 demo: 26 synthetic transcripts, one real effect in them, and its own refusals
 interventions: 3 pre-registered metrics — a verdict is reachable at 6 a side, not 8
-138 tests · ruff clean
+report: one self-contained HTML page that requests nothing when opened
+146 tests · ruff clean
 ```
 
 ## The roadmap
@@ -245,6 +246,12 @@ everything moves.
 ## What is next
 
 The roadmap is finished, so this section replaces it. In rough order of value:
+
+0. **Reverted-edit detection**, from `file-history/`. It has moved to the top:
+   it is the one signal that stands on its own from a single session, so it is
+   the only thing that could justify the report or the live screen raising an
+   alarm — which is exactly what the original mockup tried to do a milestone too
+   early. See `decisions/0013`.
 
 1. **Paired comparison.** Whole-session before/after needs six sessions a side
    even after cutting to three pre-registered metrics (`decisions/0012`). Comparing *within* sessions would need far fewer, and needs a

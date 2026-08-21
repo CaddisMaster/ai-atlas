@@ -6,6 +6,34 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Added — an HTML report
+
+- `python -m atlas report` writes **one self-contained HTML page** for a
+  project: handoff findings, configuration with provenance, repeated work,
+  session norms, recorded changes, and the live session if there is one.
+  `--open` opens it.
+- The page **requests nothing** when opened — no scripts, no webfonts, no
+  images. It carries project paths and command signatures, and once it is in a
+  browser none of this project's guarantees follow it. There is no JavaScript at
+  all: the rail is anchors, so it works without scripting and it prints.
+- Colour carries the state model instead of decorating it: pine is measured,
+  brass is unknown or untested, grey is absent, and clay — the only alarming
+  colour — is reserved for a claim the repository contradicts. **A refusal is
+  never styled as an error.**
+- `python -m atlas demo --html` renders the same page from the synthetic corpus,
+  which is the only version safe to publish.
+- Every figure comes from the same library the CLI uses; the renderer never
+  recomputes anything its own way. No screen grades a session, and a test
+  asserts the page never contains the words the original mockup used — "going
+  backwards", "spiral", "not holding". See `docs/decisions/0013`.
+- 8 more tests, including one that parses the generated markup for balance.
+
+### Fixed
+
+- Demo message uuids are unrelated to their session's id, as real ones are.
+  Deriving one from the other made every evidence line read "at demo0000
+  message demo0000".
+
 ### Changed
 
 - **Three metrics are pre-registered for interventions instead of thirteen**:

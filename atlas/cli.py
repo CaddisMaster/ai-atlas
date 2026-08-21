@@ -33,6 +33,7 @@ from .paths import claude_home
 from .patterns import MIN_SUPPORT
 from .patterns import find as patterns_find
 from .patterns import save as patterns_save
+from .report import render
 
 
 def cmd_ingest(args) -> int:
@@ -667,10 +668,35 @@ def cmd_demo(args) -> int:
     print(change.diff)
     print("nothing written. Re-run with --yes to apply.")
 
+    if args.html:
+        page = render(conn, str(busy), root=corpus.claude_home, synthetic=True,
+                      include_now=True, title=args.title or "Acme Invoices Atlas")
+        Path(args.html).write_text(page)
+        print(f"\n  wrote {args.html} ({len(page):,} bytes, self-contained)")
+
     print(f"\n{BANNER}")
     print("  End of demo. Everything above came from generated transcripts.")
     print(f"  Delete it with:  rm -rf {root}")
     print(BANNER)
+    return 0
+
+
+def cmd_report(args) -> int:
+    """One self-contained HTML page, generated locally."""
+    conn = connect(args.db)
+    target = _target(conn, args.project)
+    if target is None:
+        return 1
+
+    out = Path(args.out) if args.out else Path.cwd() / f"atlas-{target.name}.html"
+    page = render(conn, str(target), synthetic=args.synthetic,
+                  include_now=not args.no_now, title=args.title or "")
+    out.write_text(page)
+    print(f"wrote {out}  ({len(page):,} bytes, self-contained)")
+    print("it makes no network requests — open it straight from disk")
+    if args.open:
+        import webbrowser
+        webbrowser.open(out.resolve().as_uri())
     return 0
 
 
@@ -758,7 +784,19 @@ def main(argv=None) -> int:
     dm.add_argument("--seed", type=int, default=DEMO_SEED, help="same seed, same corpus")
     dm.add_argument("--sessions", type=int, default=20, help="sessions in the busy project")
     dm.add_argument("--fresh", action="store_true", help="delete and regenerate first")
+    dm.add_argument("--html", help="also write the HTML report for the generated corpus")
+    dm.add_argument("--title", help="title for the HTML report")
     dm.set_defaults(fn=cmd_demo)
+
+    rp = sub.add_parser("report", help="write a self-contained HTML page for one project")
+    rp.add_argument("project", nargs="?", help="project directory, or part of a known path")
+    rp.add_argument("--out", help="where to write it (default: ./atlas-<project>.html)")
+    rp.add_argument("--open", action="store_true", help="open it in a browser afterwards")
+    rp.add_argument("--no-now", action="store_true", help="leave out the live session panel")
+    rp.add_argument("--synthetic", action="store_true",
+                    help="mark the page as generated data (used by the demo)")
+    rp.add_argument("--title", help="page title")
+    rp.set_defaults(fn=cmd_report)
 
     args = p.parse_args(argv)
     return args.fn(args)
