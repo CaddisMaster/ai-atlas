@@ -28,9 +28,15 @@ So:
    distributions are not normal, and with these numbers every split can be
    enumerated. No sampling, no seed, no distributional assumption — the p-value
    is the exact fraction of relabellings that separate at least as well.
-3. **Testing fourteen metrics at p < 0.05 finds one by chance.** The threshold
-   is divided by the number of metrics tested, and the uncorrected p-value is
-   printed next to it so the reader can see both.
+3. **Three metrics are tested, chosen in advance.** Testing everything measured
+   and correcting for all of it was self-defeating: at thirteen metrics the
+   threshold is 0.0038, which needs eight sessions either side before any
+   verdict is reachable. At three it is 0.0167, reachable at six.
+
+   Choosing metrics *before* looking is not the same as choosing them after —
+   the second is how a result gets manufactured. So the three are fixed here,
+   frozen under ``INTERVENTION_VERSION``, and every other metric is still shown
+   with its before and after and explicitly **not tested**.
 
 Definitions frozen under ``INTERVENTION_VERSION``.
 """
@@ -45,7 +51,23 @@ from pathlib import Path
 
 from .baseline import BASELINE_VERSION, build
 
-INTERVENTION_VERSION = 1
+# v2 — three pre-registered metrics instead of every metric measured. Results
+# computed under v1 corrected for thirteen and are not comparable with these.
+INTERVENTION_VERSION = 2
+
+# Pre-registered, in advance and on purpose. One measure of each thing an
+# intervention plausibly changes:
+#
+#   duration_min     how long a session takes
+#   user_turns       how much steering the human had to do
+#   tools_per_turn   how much the assistant got done per turn
+#
+# `tool_calls` and `assistant_turns` are deliberately absent: they are close to
+# linear in duration, so testing them adds correction without adding evidence.
+# Token counts move with model and context behaviour more than with anything a
+# person changes. Everything not listed is still measured, still shown, and
+# never tested — see decisions/0012.
+PREREGISTERED = ("duration_min", "user_turns", "tools_per_turn")
 
 MIN_SIDE = 3          # sessions either side, below which no verdict is offered
 ALPHA = 0.05
@@ -56,11 +78,13 @@ SEED = 20260821       # only used above MAX_EXACT; recorded so a run is repeatab
 KINDS = ("rule", "hook", "command", "skill", "agent", "setting", "memory", "mcp", "other")
 
 MOVED, NO_VERDICT, TOO_FEW = "moved", "no verdict", "not enough sessions"
+NOT_TESTED = "not pre-registered"
 UNDERPOWERED = "cannot separate at this sample size"
 
 # Sessions needed either side before any verdict is reachable at all, at the
-# corrected threshold. Measured, not assumed — see smallest_p.
-REACHABLE_AT = 8
+# corrected threshold. Measured, not assumed — see smallest_p. Three metrics
+# rather than thirteen moved this from eight to six.
+REACHABLE_AT = 6
 
 
 @dataclass(frozen=True)
@@ -296,9 +320,17 @@ def measure(conn, intervention: dict | None = None, *, intervention_id: int | No
             side.setdefault(metric, []).append(value)
 
     metrics = sorted(set(before) | set(after))
-    result.threshold = ALPHA / len(metrics) if metrics else ALPHA
+    tested = [m for m in metrics if m in PREREGISTERED]
+    result.threshold = ALPHA / len(tested) if tested else ALPHA
     for metric in metrics:
         left, right = before.get(metric, []), after.get(metric, [])
+        if metric not in PREREGISTERED:
+            # Shown, never tested. Withholding it would hide context; giving it
+            # a p-value would invite picking the one that moved.
+            result.results.append(Result(metric, len(left), len(right),
+                                         _median(left), _median(right),
+                                         _delta(left, right), None, NOT_TESTED))
+            continue
         if len(left) < MIN_SIDE or len(right) < MIN_SIDE:
             result.results.append(Result(metric, len(left), len(right),
                                          _median(left), _median(right), None, None, TOO_FEW))
@@ -318,6 +350,15 @@ def measure(conn, intervention: dict | None = None, *, intervention_id: int | No
 
     # Only worth saying when something was actually tested: a correction for
     # multiple comparisons is noise on a comparison that never happened.
+    context = [r for r in result.results if r.verdict == NOT_TESTED]
+    # Only worth explaining when something *was* tested; on a comparison that
+    # could not run at all it is one more line of noise.
+    if context and any(r.verdict in (MOVED, NO_VERDICT) for r in result.results):
+        result.notes.append(
+            f"{len(context)} further metric(s) shown for context and not tested — "
+            "three are pre-registered, and picking a fourth after seeing it move "
+            "is how a result gets manufactured")
+
     underpowered = [r for r in result.results if r.verdict == UNDERPOWERED]
     if underpowered:
         example = underpowered[0]
@@ -327,10 +368,11 @@ def measure(conn, intervention: dict | None = None, *, intervention_id: int | No
             f"{floor:.3f} however the sessions fell, and the threshold is "
             f"{result.threshold:.4f} — this comparison could not have found anything")
 
-    if any(r.verdict not in (TOO_FEW, UNDERPOWERED) for r in result.results):
+    if any(r.verdict in (MOVED, NO_VERDICT) for r in result.results):
         result.notes.append(
-            f"{len(metrics)} metrics tested, so the threshold is {ALPHA} ÷ {len(metrics)} "
-            f"= {result.threshold:.4f} — at plain 0.05, one metric in twenty moves by chance")
+            f"{len(tested)} pre-registered metrics, so the threshold is {ALPHA} ÷ "
+            f"{len(tested)} = {result.threshold:.4f} — at plain 0.05, one metric in "
+            "twenty moves by chance")
     if result.spanning:
         result.notes.append(
             f"{len(result.spanning)} session(s) were in flight when this landed and "
@@ -340,6 +382,12 @@ def measure(conn, intervention: dict | None = None, *, intervention_id: int | No
 
 def _median(values: list[float]) -> float | None:
     return statistics.median(values) if values else None
+
+
+def _delta(before: list[float], after: list[float]) -> float | None:
+    if not before or not after:
+        return None
+    return statistics.median(after) - statistics.median(before)
 
 
 def save(conn, measurement: Measurement) -> None:

@@ -279,7 +279,8 @@ CREATE TABLE IF NOT EXISTS intervention_results (
     p_value               REAL,
     verdict               TEXT NOT NULL
                           CHECK (verdict IN ('moved', 'no verdict', 'not enough sessions',
-                                             'cannot separate at this sample size')),
+                                             'cannot separate at this sample size',
+                                             'not pre-registered')),
     threshold             REAL NOT NULL,   -- alpha after correcting for metrics tested
     intervention_version  INTEGER NOT NULL,
     baseline_version      INTEGER NOT NULL,

@@ -6,6 +6,23 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **Three metrics are pre-registered for interventions instead of thirteen**:
+  `duration_min`, `user_turns`, `tools_per_turn` — one measure each of how long
+  a session takes, how much steering it needed, and how much got done per turn.
+  Correcting the threshold for thirteen metrics meant eight sessions either side
+  before any verdict was reachable; three needs six. Everything else is still
+  measured and shown with its before and after, and explicitly **not tested** —
+  choosing a metric after seeing it move is how a result gets manufactured. See
+  `docs/decisions/0012`.
+- `INTERVENTION_VERSION` is 2. Results computed under 1 corrected for thirteen
+  metrics and are not comparable with these.
+- The README leads with config resolution and handoff, which need no sample size
+  and are the reason to run this daily, rather than with the before/after
+  measurement that needs twelve sessions around a change. It also says plainly
+  how the tool is used: it is a CLI, there is no web UI.
+
 ### Added — milestone 9, demo
 
 - `python -m atlas demo` generates a synthetic corpus and runs every screen

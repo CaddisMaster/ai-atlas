@@ -13,7 +13,7 @@ from atlas.baseline import build
 from atlas.config import resolve
 from atlas.demo import BUILD, MARKER, NOISE, RITUAL, generate
 from atlas.ingest import ingest
-from atlas.interventions import MOVED, NO_VERDICT, TOO_FEW, measure, record
+from atlas.interventions import MOVED, NO_VERDICT, NOT_TESTED, TOO_FEW, measure, record
 from atlas.patterns import find
 
 VOCABULARY = {word.split()[0] for word in (*RITUAL, *NOISE, *BUILD)} | {"cd", "echo"}
@@ -143,13 +143,14 @@ def test_the_demo_shows_refusals_as_well_as_findings(conn, tmp_path):
     busy = str(corpus.projects[0])
 
     real = measure(conn, intervention_id=record(conn, busy, "the change", corpus.changed_on))
-    verdicts = {result.verdict for result in real.results}
-    assert MOVED in verdicts, "a real effect, and enough sessions to see it"
-    assert NO_VERDICT in verdicts, "and metrics that did not separate, shown as such"
+    tested = [r for r in real.results if r.verdict in (MOVED, NO_VERDICT)]
+    assert MOVED in {r.verdict for r in tested}, "a real effect, and enough sessions to see it"
+    assert [r for r in real.results if r.verdict == NOT_TESTED], \
+        "the metrics nobody pre-registered are shown and not tested"
 
     late = measure(conn, intervention_id=record(conn, busy, "too late",
                                                 "2027-01-01T00:00:00+00:00"))
-    assert {result.verdict for result in late.results} == {TOO_FEW}
+    assert {r.verdict for r in late.results if r.verdict != NOT_TESTED} == {TOO_FEW}
 
 
 def test_the_directory_is_marked_as_disposable(tmp_path):

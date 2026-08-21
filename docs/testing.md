@@ -7,7 +7,7 @@
 
 ## What the tests are for
 
-One hundred and thirty-seven tests. The ones that matter most are regressions for wrong answers
+One hundred and thirty-eight tests. The ones that matter most are regressions for wrong answers
 found by running against **real data** rather than by reasoning about it:
 
 - `test_project_scope_is_not_missed_by_a_user_scope_read` — the false claim that

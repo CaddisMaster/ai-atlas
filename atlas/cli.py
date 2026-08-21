@@ -23,7 +23,7 @@ from .handoff import run as handoff_run
 from .handoff import save as handoff_save
 from .ingest import ingest
 from .interventions import KINDS as INTERVENTION_KINDS
-from .interventions import MIN_SIDE, REACHABLE_AT, TOO_FEW, UNDERPOWERED
+from .interventions import MIN_SIDE, NOT_TESTED, REACHABLE_AT, TOO_FEW, UNDERPOWERED
 from .interventions import detect as intervention_detect
 from .interventions import measure as intervention_measure
 from .interventions import record as intervention_record
@@ -389,7 +389,7 @@ def _print_measurement(what: str, measurement) -> None:
     print(f"\n#{measurement.intervention_id}  {what}")
     print(f"    landed  {measurement.happened[:16].replace('T', ' ')} UTC")
 
-    testable = [r for r in measurement.results if r.verdict != TOO_FEW]
+    testable = [r for r in measurement.results if r.verdict not in (TOO_FEW, NOT_TESTED)]
     if not testable:
         before = max((r.n_before for r in measurement.results), default=0)
         after = max((r.n_after for r in measurement.results), default=0)
@@ -402,6 +402,12 @@ def _print_measurement(what: str, measurement) -> None:
             print(f"    {r.metric:<18}{_fmt(r.median_before or 0):>10} → "
                   f"{_fmt(r.median_after or 0):<10} p={r.p_value:<8.3f}"
                   f"n={r.n_before}/{r.n_after}  {mark}")
+        context = [r for r in measurement.results if r.verdict == NOT_TESTED]
+        if context:
+            print("\n    shown, not tested —")
+            for r in sorted(context, key=lambda r: r.metric):
+                print(f"    {r.metric:<18}{_fmt(r.median_before or 0):>10} → "
+                      f"{_fmt(r.median_after or 0)}")
         if not measurement.moved:
             print("\n    nothing moved past the threshold. With these numbers that is the")
             print("    expected result, not a disappointing one.")

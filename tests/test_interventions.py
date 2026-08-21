@@ -14,6 +14,8 @@ from atlas.interventions import (
     MIN_SIDE,
     MOVED,
     NO_VERDICT,
+    NOT_TESTED,
+    PREREGISTERED,
     TOO_FEW,
     UNDERPOWERED,
     measure,
@@ -48,16 +50,13 @@ def test_a_thin_side_gets_no_verdict_at_all(conn):
         _session(conn, f"after{i}", day, minutes=20.0)
 
     result = measure(conn, {"id": 1, "project_root": "/work/demo-app", "happened": WHEN})
-    assert {r.verdict for r in result.results} == {TOO_FEW}
+    tested = [r for r in result.results if r.metric in PREREGISTERED]
+    assert {r.verdict for r in tested} == {TOO_FEW}
     assert all(r.p_value is None for r in result.results), "no p-value without a test"
 
 
 def test_a_real_change_is_reported_when_the_sessions_can_carry_it(conn):
-    """Eight against eight, separated with no overlap at all.
-
-    Eight, not six: six against six cannot produce a p below 0.0043, and the
-    threshold after correcting for thirteen metrics is 0.0038.
-    """
+    """Eight against eight, separated with no overlap at all."""
     for i, day in enumerate((1, 2, 3, 4, 5, 6, 7, 8)):
         _session(conn, f"before{i}", day, minutes=100.0 + i)
     for i, day in enumerate((19, 20, 21, 22, 23, 24, 25, 26)):
@@ -86,20 +85,29 @@ def test_a_difference_inside_the_noise_gets_no_verdict(conn):
     assert result.moved == []
 
 
-def test_the_threshold_is_corrected_for_the_metrics_tested(conn):
-    """Thirteen metrics at p < 0.05 turns up one by chance. The reader is told
-    the corrected threshold and shown the uncorrected p."""
+def test_only_the_pre_registered_metrics_are_tested(conn):
+    """Three, chosen in advance, so the correction does not eat the evidence.
+
+    Testing everything measured and correcting for all of it needed eight
+    sessions either side before any verdict was reachable. Three needs six. The
+    rest are still shown — withholding them would hide context — and are marked
+    as not tested, because picking a fourth after seeing it move is how a
+    result gets manufactured.
+    """
     for i, day in enumerate((1, 2, 3, 4, 5, 6, 7, 8)):
         _session(conn, f"before{i}", day, minutes=100.0 + i)
     for i, day in enumerate((19, 20, 21, 22, 23, 24, 25, 26)):
         _session(conn, f"after{i}", day, minutes=10.0 + i)
 
     result = measure(conn, {"id": 1, "project_root": "/work/demo-app", "happened": WHEN})
-    tested = [r for r in result.results if r.verdict != TOO_FEW]
-    assert result.threshold == pytest.approx(ALPHA / len({r.metric for r in result.results}))
-    assert result.threshold < ALPHA
-    assert any("threshold" in note for note in result.notes)
-    assert tested, "something has to have been tested for the correction to matter"
+    tested = {r.metric for r in result.results if r.verdict in (MOVED, NO_VERDICT)}
+    shown = {r.metric for r in result.results if r.verdict == NOT_TESTED}
+
+    assert tested <= set(PREREGISTERED)
+    assert result.threshold == pytest.approx(ALPHA / len(PREREGISTERED))
+    assert shown, "everything else is still reported"
+    assert not shown & set(PREREGISTERED)
+    assert all(r.p_value is None for r in result.results if r.verdict == NOT_TESTED)
 
 
 def test_a_session_in_flight_belongs_to_neither_side(conn):
@@ -130,6 +138,23 @@ def test_the_permutation_test_is_exact_and_two_sided():
     assert permutation_p([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]) == pytest.approx(1.0)
 
 
+def test_six_against_six_can_now_reach_a_verdict(conn):
+    """The point of pre-registering three metrics, as a test.
+
+    This exact comparison returned `cannot separate at this sample size` when
+    thirteen metrics were tested and corrected for.
+    """
+    for i, day in enumerate((1, 2, 3, 4, 5, 6)):
+        _session(conn, f"before{i}", day, minutes=100.0 + i)
+    for i, day in enumerate((19, 20, 21, 22, 23, 24)):
+        _session(conn, f"after{i}", day, minutes=10.0 + i)
+
+    result = measure(conn, {"id": 1, "project_root": "/work/demo-app", "happened": WHEN})
+    duration = next(r for r in result.results if r.metric == "duration_min")
+    assert duration.verdict == MOVED
+    assert duration.p_value < result.threshold
+
+
 def test_a_split_that_could_never_separate_says_so(conn):
     """Three against three cannot produce a p below 0.2 whatever the data does.
 
@@ -151,15 +176,15 @@ def test_a_split_that_could_never_separate_says_so(conn):
 
 @pytest.mark.parametrize("n,expected_floor", [
     (3, 0.20000),
-    (5, 0.04762),   # still above a plain 0.05 only just — and far above corrected
-    (8, 0.00311),   # the first symmetric split that can clear 0.05 ÷ 13
+    (5, 0.04762),   # above the corrected threshold however the sessions fall
+    (6, 0.01299),   # the first symmetric split that can clear 0.05 ÷ 3
 ])
 def test_the_reachable_floor_comes_out_of_the_sample_size(n, expected_floor):
-    """**Eight sessions each side** — sixteen around the change — before any
-    verdict is reachable at all, once the threshold is corrected for thirteen
-    metrics. The best-covered project in the real corpus has ten sessions in
-    total. That is the honest scale of this measurement, and it is better known
-    before an experiment than after one.
+    """**Six sessions each side** — twelve around the change — before any verdict
+    is reachable, at three pre-registered metrics. It was eight when thirteen
+    metrics were tested and corrected for; cutting the metric set in advance is
+    what bought the difference. The best-covered project in the real corpus has
+    ten sessions in total, so twelve around a single change is still ambitious.
     """
     assert smallest_p(n, n) == pytest.approx(expected_floor, rel=0.01)
 
@@ -184,7 +209,7 @@ def test_results_carry_both_versions_they_depend_on(conn):
     row = conn.execute(
         "SELECT intervention_version, baseline_version, threshold FROM intervention_results"
         " WHERE intervention_id = ? LIMIT 1", (intervention_id,)).fetchone()
-    assert row["intervention_version"] == 1 and row["baseline_version"] == 1
+    assert row["intervention_version"] == 2 and row["baseline_version"] == 1
     assert row["threshold"] < ALPHA
 
 

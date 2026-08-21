@@ -25,7 +25,8 @@ interventions: 4 real changes detected; every one of them unmeasurable, and told
 now: watched this session write itself — 4.5 KB, 0 KB, 6.4 KB across three frames
 apply: writes one file kind, refuses everything else, records what it did
 demo: 26 synthetic transcripts, one real effect in them, and its own refusals
-137 tests · ruff clean
+interventions: 3 pre-registered metrics — a verdict is reachable at 6 a side, not 8
+138 tests · ruff clean
 ```
 
 ## The roadmap
@@ -245,8 +246,8 @@ everything moves.
 
 The roadmap is finished, so this section replaces it. In rough order of value:
 
-1. **Paired comparison.** Whole-session before/after needs eight sessions a
-   side. Comparing *within* sessions would need far fewer, and needs a
+1. **Paired comparison.** Whole-session before/after needs six sessions a side
+   even after cutting to three pre-registered metrics (`decisions/0012`). Comparing *within* sessions would need far fewer, and needs a
    definition of "the same task" that has to be versioned rather than tuned.
 2. **`file-history/`** is still unread — the route to detecting reverted edits,
    and the one signal that could justify a live screen saying something is
