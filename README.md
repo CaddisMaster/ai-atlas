@@ -33,11 +33,14 @@ somebody asks.
   with `--github`, which is the only thing here that touches the network.
 - **Patterns** — finds work you repeat by hand and proposes the artifact that
   captures it: a slash command, a rule, a permission, a subagent, a hook.
+- **Baseline** — what a normal session looks like in a project, with the
+  sample size attached, and which sessions were not normal.
 - **Interventions** — every change you make to how you work gets a before and
   an after, and is kept or discarded on the numbers.
 - **Now** — watches the running session and says when it is going backwards.
 
-Ingest, config resolution and handoff exist today. See [docs/status.md](docs/status.md).
+Ingest, config resolution, handoff and baselines exist today. See
+[docs/status.md](docs/status.md).
 
 ## Quick start
 
@@ -47,6 +50,7 @@ python -m atlas stats     # summarise what has been ingested
 python -m atlas config    # what is configured here, and which scope it came from
 python -m atlas config --all
 python -m atlas handoff   # what docs/status.md claims that the repo contradicts
+python -m atlas baseline  # what a normal session looks like here, and which were not
 ```
 
 No dependencies and no install step — ingest is stdlib-only and SQLite ships
@@ -65,6 +69,15 @@ with `ATLAS_DB`.
 1 slash command, 1 skill, 1 `Stop` hook and 30 permission rules — none of which
 appear in `~/.claude/settings.json`, which is the only file a naive read looks
 at.
+
+`baseline` states a norm for exactly one of the four projects. The other three
+have three sessions, two and one, and are told so rather than given a median:
+
+```
+budget-buddy   10 counted · 3 excluded (no assistant turn) · provisional
+               median session: 120 min · 270 tool calls · 89% of them Bash
+               1 session unusual — 49% Bash, 28% Edit, in a project that greps
+```
 
 Second run of `ingest` reads **0 bytes**. Re-ingest costs new bytes only.
 

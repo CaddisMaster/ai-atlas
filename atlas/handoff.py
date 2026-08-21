@@ -33,7 +33,13 @@ NAMES_A_FILE = re.compile(r"\S+\.(py|md|sh|sql)\b")
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # `### Added — milestone 2, config resolution` in the changelog's Unreleased
 # section is the claim that milestone 2 has landed.
-CHANGELOG_MILESTONE = re.compile(r"milestone\s+(\d+)", re.IGNORECASE)
+#
+# ⚠️ Headings only. The body of that section is prose, and prose mentions
+# milestones that have *not* landed — "which is what milestone 6 will compare".
+# Scanning the whole section read that as a claim and reported milestone 6 as
+# done while it was still an empty roadmap row. Found by running handoff against
+# this repository one commit after writing the sentence.
+CHANGELOG_MILESTONE = re.compile(r"^#{2,4}\s.*milestone\s+(\d+)", re.IGNORECASE | re.MULTILINE)
 # `| 2 | Config resolution | ✅ done |` in the status document's roadmap.
 ROADMAP_ROW = re.compile(r"^\|\s*(\d+)\s*\|([^|]*)\|([^|]*)\|")
 DONE = re.compile(r"done|shipped|✅", re.IGNORECASE)

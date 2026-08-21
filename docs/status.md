@@ -8,8 +8,8 @@
 
 ## Where things are — 2026-08-21
 
-**Milestones 1, 2 and 3 of 9 are done.** Ingest, config resolution and handoff
-all work against real data.
+**Milestones 1–4 of 9 are done.** Ingest, config resolution, handoff and
+baselines all work against real data.
 
 ```
 25 transcript files · 54.1 MB · 8,455 messages · 2,709 tool calls
@@ -18,7 +18,8 @@ second run reads 0 bytes
 every session tied to the project root it ran in
 config resolved across 6 scopes, 16 paths checked per project
 handoff: 7 checks, clean on this repo, 2 bugs found on the sibling one
-39 tests · ruff clean
+baseline: a norm for 1 of 4 projects; the other 3 are told they have none
+56 tests · ruff clean
 ```
 
 ## The roadmap
@@ -28,8 +29,8 @@ handoff: 7 checks, clean on this repo, 2 bugs found on the sibling one
 | 1 | Scaffold + ingest | ✅ done |
 | 2 | Config resolution across all scopes | ✅ done |
 | 3 | Handoff — reconcile status.md against reality | ✅ done |
-| 4 | Baseline — per-project norms | next |
-| 5 | Patterns — repeated-sequence detection | |
+| 4 | Baseline — per-project norms | ✅ done |
+| 5 | Patterns — repeated-sequence detection | next |
 | 6 | Interventions — before/after measurement | |
 | 7 | Now — live session watchdog | |
 | 8 | Apply — write config with diff and confirmation | |
@@ -73,13 +74,42 @@ PostgreSQL version against a git tag. Both are in `gotchas.md` with regression
 tests. That is the second time real data has beaten reasoning, and the argument
 for running every new check against a repository that was not written for it.
 
-## Milestone 4 acceptance criteria
+## Milestone 4 acceptance criteria — met
 
-Baseline passes when it states, for one project and from ingested data alone,
-what a normal session looks like there — length, tool mix, cache behaviour — and
-can say which sessions were not normal. It has to survive the obvious objection:
-21 main sessions over 7 days is a small sample, so the answer must carry how
-confident it is, and `unknown` stays available.
+`python -m atlas baseline` states a norm for `budget-buddy` — 10 sessions
+counted, 3 excluded, **provisional** — and refuses for the other three projects,
+which have 3, 2 and 1 usable sessions between them. Every definition is frozen
+under `BASELINE_VERSION`; see `decisions/0006`.
+
+What it found, on data that was not arranged for it:
+
+```
+median session   120 min · 311 user turns · 270 tool calls · 89% Bash
+unusual          1 of 10 — 49% Bash, 28% Edit, in a project that otherwise greps
+                 2 more on cache hit rate: 0.79 and 0.89 against a 0.96 floor
+excluded         3 of 13 — a prompt typed and abandoned, no assistant turn
+```
+
+The counting metrics — duration, turns, tool calls — flagged **nothing**, and
+the output says why: the middle half of `tool_calls` runs 68 to 343, so the
+Tukey fence reaches 755 and would catch almost nothing. That is a true statement
+about ten sessions, and it is more useful than a confident-looking threshold.
+
+## Milestone 5 acceptance criteria
+
+Patterns passes when, from ingested data alone, it names a tool sequence that
+repeats across sessions, shows the sessions and turns it occurred in so the
+claim can be checked by hand, and proposes the artifact that would capture it —
+a slash command, a rule, a permission, a subagent, a hook.
+
+It has to be able to find nothing. A project with one session, or with no
+repeated sequence above the threshold, gets told that; proposing an artifact on
+a single occurrence is how a tool teaches somebody to ignore it.
+
+⚠️ 89% of tool calls in the corpus are `Bash`, so sequence detection over tool
+*names* will find `Bash → Bash → Bash` and nothing else. The unit has to carry
+more than the tool name — the command's first word or two, the file extension
+touched — and choosing that unit is most of this milestone.
 
 ## Open questions
 
@@ -94,4 +124,8 @@ confident it is, and `unknown` stays available.
   the project the test suite cannot exercise. See `decisions/0005`.
 - **`file-history/`** (6.1 MB) is unread. It is the direct route to detecting
   reverted edits — the strongest signal for the Now screen.
-- **What "a session" means** when a transcript is resumed. Not yet examined.
+- **What "a session" means** when a transcript is resumed. Now measured rather
+  than guessed: `gap_max_min` is the largest silence inside a session, and the
+  largest in the whole corpus is **23.8 minutes**. So either nothing here was
+  resumed after a break, or a resume starts a new transcript. Unresolved, but
+  it now has an instrument.

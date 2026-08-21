@@ -51,6 +51,11 @@ session is safe to read at any moment.
 | `rules` | permission rules, split into tool and argument |
 | `handoff_snap` | one reconciliation of a status document against its repo |
 | `handoff_findings` | what was claimed, what was true, and where |
+| `baselines` | one norm for one project and session kind |
+| `baseline_metrics` | quartiles and the normal band, per metric |
+| `baseline_outliers` | sessions outside the band, and on which metric |
+| `baseline_exclusions` | sessions left out, and why |
+| `session_metrics` | the per-session measurement itself |
 
 Not yet built: `edits`, `classifications`, `interventions`. See `status.md`.
 
@@ -93,6 +98,27 @@ that disagrees. Findings carry `file:line` so the reader can overrule them.
 
 `--github` adds open pull requests and is the only network call in the project.
 Offline by default; see `decisions/0005`.
+
+## Baselines
+
+```
+sessions ──eligible?──▶ per-session metrics ──quartiles──▶ normal band
+   │  no assistant turn                                        │
+   └──▶ baseline_exclusions (recorded, never dropped)           ▼
+                                                     outliers, if n ≥ 5
+```
+
+Metrics are per session, never pooled across the project: pooled counts let the
+longest session define "normal". Each metric carries its own `n`, so a session
+missing one value is absent from that metric and present in the rest.
+
+Confidence comes from the number of sessions alone, and below five no band is
+computed and nothing is called unusual — three of the four projects on this
+machine do not have enough history to have a normal. See `decisions/0006`.
+
+Every definition is frozen under `BASELINE_VERSION`, separately from
+`PARSER_VERSION`: one says what the transcript said, the other says what we made
+of it.
 
 ## What is deliberately absent
 

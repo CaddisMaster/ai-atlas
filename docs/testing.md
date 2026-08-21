@@ -7,7 +7,7 @@
 
 ## What the tests are for
 
-Thirty-nine tests. The ones that matter most are regressions for wrong answers
+Fifty-six tests. The ones that matter most are regressions for wrong answers
 found by running against **real data** rather than by reasoning about it:
 
 - `test_project_scope_is_not_missed_by_a_user_scope_read` — the false claim that
@@ -28,6 +28,11 @@ window, so any file smaller than that invalidated its own watermark on every
 append. That is the whole argument for writing the acceptance test before
 believing the implementation.
 
+Most of the baseline tests are about the **refusals** — the sample below the
+floor, the abandoned session, the subagents kept out of the main baseline —
+because that is where a measurement tool does damage. A median printed without
+its sample size is the failure mode, and it looks like success.
+
 ## Fixtures stay faithful, not convenient
 
 `tests/conftest.py` builds a `~/.claude` with a main session and a subagent
@@ -47,6 +52,12 @@ data behind it, which is worth knowing when it eventually misbehaves.
 
 Ingest against a transcript that is actively being written. The partial-line
 path is covered synthetically, but not under a real concurrent writer.
+
+Baseline fixtures build database rows rather than transcripts. The JSONL path
+into those tables is covered by the ingest tests, and duplicating it here would
+test the fixture rather than the measurement — but it does mean a change to
+ingest's column semantics could pass these tests. The shapes are copied from the
+corpus, including sessions with no assistant turn.
 
 `handoff --github`. It is the one code path that needs the network, so it is
 the one path the test suite cannot exercise. Everything it does offline is

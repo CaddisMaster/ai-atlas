@@ -6,6 +6,40 @@ described in [VERSIONING.md](VERSIONING.md).
 
 ## [Unreleased]
 
+### Added — milestone 4, baselines
+
+- `python -m atlas baseline` states what a normal session looks like in one
+  project: duration, turns, tool calls, tools per turn, output tokens, cache hit
+  rate, the largest silence inside a session, and the share of a session's own
+  tool calls going to each of the top five tools. Quartiles, a Tukey normal
+  band, and the sessions that fall outside it.
+- **Confidence comes from the sample size, and gates what is claimed.** Below 5
+  sessions no band is computed and no session is called unusual; 5–11 is
+  `provisional`; 12 or more is `established`. Three of the four projects on this
+  machine are told they do not have a normal yet, which is the correct answer.
+  See `docs/decisions/0006`.
+- `BASELINE_VERSION` freezes every definition — eligibility, the quantile
+  convention, the outlier fence, the thresholds — separately from
+  `PARSER_VERSION`. One says what the transcript said, the other what we made of
+  it. `VERSIONING.md` covers both.
+- Sessions with no assistant turn are excluded from baselines and **recorded**
+  in `baseline_exclusions` with the reason. Three of thirteen real sessions in
+  one project are a prompt typed and abandoned.
+- Tool mix is measured per session and then summarised, never pooled across the
+  project — pooling lets the longest session define "normal".
+- Each metric carries its own `n`: a session missing one value is absent from
+  that metric and present in the rest.
+- `session_metrics` stores the per-session numbers, which is what milestone 6
+  will compare before and after an intervention.
+- 16 more tests, most of them about the refusals rather than the numbers.
+
+### Fixed — caught by handoff, in this repository
+
+- A milestone mentioned in the changelog's *prose* is no longer read as landed.
+  "…which is what milestone 6 will compare" made handoff report an empty roadmap
+  row as stale. Only `###` headings inside `[Unreleased]` count as a claim now.
+  Found one commit after the sentence was written, by the check itself.
+
 ### Added — milestone 3, handoff
 
 - `python -m atlas handoff` checks a status document against the repository and
