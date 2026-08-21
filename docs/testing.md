@@ -7,7 +7,7 @@
 
 ## What the tests are for
 
-One hundred and two tests. The ones that matter most are regressions for wrong answers
+One hundred and thirteen tests. The ones that matter most are regressions for wrong answers
 found by running against **real data** rather than by reasoning about it:
 
 - `test_project_scope_is_not_missed_by_a_user_scope_read` — the false claim that
@@ -27,6 +27,12 @@ and exposed a genuine defect: the watermark's prefix hash covered a fixed 4 KB
 window, so any file smaller than that invalidated its own watermark on every
 append. That is the whole argument for writing the acceptance test before
 believing the implementation.
+
+`test_ingest_keeps_up_with_a_live_writer` closes the gap this file has listed
+since milestone 1. A thread appends records **in fragments**, so the transcript
+genuinely spends time ending mid-line, while the reader catches up in a loop.
+Every record has to arrive exactly once, and the watermark has to finish at the
+end of the file.
 
 `test_the_reachable_floor_comes_out_of_the_sample_size` is the one to read
 first. It is not a regression: it is the finding that eight sessions either side
@@ -58,9 +64,6 @@ every real project on this machine has it empty. That code path has no live
 data behind it, which is worth knowing when it eventually misbehaves.
 
 ## What is not tested yet
-
-Ingest against a transcript that is actively being written. The partial-line
-path is covered synthetically, but not under a real concurrent writer.
 
 Signature extraction is tested against commands copied out of the corpus —
 multi-line `cd` prefixes, `echo` labels, loop headers, `.venv/bin/pytest`. Two

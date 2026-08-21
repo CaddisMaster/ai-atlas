@@ -53,6 +53,7 @@ python -m atlas baseline  # what a normal session looks like here, and which wer
 python -m atlas patterns  # work that repeats, and the artifact that would capture it
 python -m atlas intervention detect   # changes to how you work, found in config and file times
 python -m atlas intervention list     # ...and whether the numbers moved
+python -m atlas now --watch 5         # what the session being written is doing
 ```
 
 No dependencies and no install step — ingest is stdlib-only and SQLite ships
