@@ -49,3 +49,36 @@ Unlike the sibling projects, this one does not run inside a container, so bare
 `ruff` and `pytest` resolve to whatever the shell happens to have — usually
 nothing. The script checks `.venv/bin` first and fails with the venv-creation
 command rather than a bare "command not found".
+
+## A `projects/` directory name cannot be decoded back into a path
+
+`/home/sean/dev/ai-atlas` becomes `-home-sean-dev-ai-atlas`, and both `/` and a
+literal `-` end up as `-`. So `-home-sean-personal-projects` is either
+`/home/sean/personal-projects` or `/home/sean/personal/projects` and the name
+does not say which — and this machine has *both* a `personal-projects` directory
+and projects inside it.
+
+Encoding is a function; decoding is not. The project root comes from the `cwd`
+field on the transcript's own records, confirmed by encoding it back and
+matching. A candidate that fails to match yields `None` — "unknown" — never a
+plausible wrong path.
+
+`cwd` is per record and a session wanders: one real transcript records 1,331
+records at the project root and 18 from `app/templates/partials`. Walk up from
+`cwd` until an ancestor matches.
+
+## Permission rules live outside `settings.json` too
+
+`~/.claude.json` carries `projects.<root>.allowedTools`: the "always allow"
+answers accumulated by pressing a key at a permission prompt. They grant
+permissions exactly like a rule in `settings.json` and appear in no settings
+file in any scope. An audit that reads only settings files reports fewer
+permissions than are in force.
+
+They are all empty on this machine, which is the worst case for a bug: the code
+path is exercised by fixtures only. See `tests/conftest.py`.
+
+## A skill is named for its directory, not its file
+
+Every skill file is called `SKILL.md`, so `path.stem` names all of them "SKILL".
+The name is the parent directory's.

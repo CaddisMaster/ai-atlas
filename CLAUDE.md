@@ -59,4 +59,5 @@ Run `/wrap`. It carries the sequence and the traps.
 
 ## Current status
 
-Ingest works. Nothing else exists yet. See [docs/status.md](docs/status.md).
+Ingest and config resolution work. Nothing else exists yet. See
+[docs/status.md](docs/status.md).

@@ -45,9 +45,37 @@ session is safe to read at any moment.
 | `tool_calls` | one row per `tool_use` block |
 | `usage` | token counts per assistant message |
 | `record_types` | every record type seen, modelled or not |
+| `config_snap` | one resolution of configuration, fingerprinted |
+| `config_scopes` | every place looked, and what was found there |
+| `config_items` | agents, commands, skills, hooks, settings, memory, mcp |
+| `rules` | permission rules, split into tool and argument |
 
-Not yet built: `config_snap`, `rules`, `edits`, `classifications`,
-`interventions`. See `status.md`.
+Not yet built: `edits`, `classifications`, `interventions`. See `status.md`.
+
+## Config resolution
+
+```
+enterprise  /etc/claude-code/managed-settings.json   ─┐
+cli         (flags — unreadable, always unknown)      │  precedence,
+local       <project>/.claude/settings.local.json     │  highest first
+project     <project>/.claude/settings.json           │
+user        ~/.claude/settings.json                   │
+dynamic     ~/.claude.json  (always-allow answers)   ─┘
+```
+
+Plus the file-shaped scopes: `agents/*.md`, `commands/**/*.md`,
+`skills/*/SKILL.md`, `CLAUDE.md` and `CLAUDE.local.md`, at both project and user
+level.
+
+Settings, agents, commands and skills **shadow** — the highest scope wins and
+the losers are kept and marked. Permission rules, hooks, MCP servers and memory
+files **accumulate**. A scope that cannot be read is `unknown`, never `absent`,
+and every path looked at is recorded whether or not anything was found there.
+See `decisions/0004`.
+
+Which project a session ran in comes from the `cwd` on its records: the
+directory name under `projects/` is a lossy encoding and is matched, never
+decoded. See `gotchas.md`.
 
 ## What is deliberately absent
 

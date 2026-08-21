@@ -19,7 +19,7 @@ from pathlib import Path
 
 from . import PARSER_VERSION
 from .db import note_record_type
-from .paths import classify, transcript_files
+from .paths import classify, project_root_for, transcript_files
 
 PREFIX_BYTES = 4096
 
@@ -116,6 +116,7 @@ def _ingest_file(conn, path: Path, root: Path | None, res: Result) -> None:
     res.files_read += 1
     project, kind, parent = classify(path, root)
     seen_session: str | None = None
+    rooted = False
 
     with path.open("rb") as fh:
         fh.seek(offset)
@@ -152,6 +153,19 @@ def _ingest_file(conn, path: Path, root: Path | None, res: Result) -> None:
             if session_id != seen_session:
                 _upsert_session(conn, project, kind, parent, path, session_id)
                 seen_session = session_id
+
+            # Which project on disk this session ran against. `cwd` may be a
+            # subdirectory of the root, and the directory name under projects/
+            # cannot be decoded, so the two are reconciled by re-encoding —
+            # see paths.project_root_for.
+            if not rooted and rec.get("cwd"):
+                project_root = project_root_for(rec["cwd"], project)
+                if project_root is not None:
+                    conn.execute(
+                        "UPDATE sessions SET project_root = ? WHERE id = ? AND project_root IS NULL",
+                        (str(project_root), session_id),
+                    )
+                    rooted = True
 
             if rtype not in MODELLED:
                 continue
