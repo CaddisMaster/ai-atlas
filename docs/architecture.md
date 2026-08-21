@@ -60,6 +60,8 @@ session is safe to read at any moment.
 | `patterns` | sequences that repeat, with support and lift |
 | `pattern_occurrences` | every occurrence, with the message it started at |
 | `pattern_permissions` | repeated calls no allow rule covers |
+| `interventions` | a change to how somebody works, with its date |
+| `intervention_results` | before/after per metric, with the verdict and both versions |
 
 Not yet built: `edits`, `classifications`, `interventions`. See `status.md`.
 
@@ -145,6 +147,28 @@ Ranking is by **lift**, not frequency. The most frequent pair in the corpus is
 Repeated single calls take the other path: a signature used often that no allow
 rule covers is a permission proposal — and with no resolved config to check
 against, no claim is made at all.
+
+## Interventions
+
+```
+config snapshots + file mtimes ──▶ candidate changes ──▶ recorded, with a date
+                                                              │
+session_metrics (milestone 4) ──split by that date──▶ before │ after
+                                                              ▼
+                              exact permutation test on the difference in medians
+                                                              ▼
+        moved · no verdict · cannot separate at this sample size · not enough sessions
+```
+
+Four outcomes, not two. The fourth is the one that matters: the tool computes
+the smallest p-value the split *sizes* admit before looking at the data, and
+says so when no arrangement of those sessions could have cleared the threshold.
+Eight sessions either side, at thirteen metrics. See `decisions/0008`.
+
+A session in flight when the change landed belongs to neither side. An
+expectation the human wrote down is stored and never scored — checking whether
+the numbers agree with what somebody already believed is the trap this whole
+subsystem exists to avoid.
 
 ## What is deliberately absent
 

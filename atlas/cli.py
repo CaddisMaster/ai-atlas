@@ -3,6 +3,7 @@
 import argparse
 import json
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 from . import PARSER_VERSION, __version__
@@ -15,6 +16,12 @@ from .handoff import STALE
 from .handoff import run as handoff_run
 from .handoff import save as handoff_save
 from .ingest import ingest
+from .interventions import KINDS as INTERVENTION_KINDS
+from .interventions import MIN_SIDE, REACHABLE_AT, TOO_FEW, UNDERPOWERED
+from .interventions import detect as intervention_detect
+from .interventions import measure as intervention_measure
+from .interventions import record as intervention_record
+from .interventions import save as intervention_save
 from .paths import claude_home
 from .patterns import MIN_SUPPORT
 from .patterns import find as patterns_find
@@ -368,6 +375,85 @@ def cmd_patterns(args) -> int:
     return 0
 
 
+def _print_measurement(what: str, measurement) -> None:
+    print(f"\n#{measurement.intervention_id}  {what}")
+    print(f"    landed  {measurement.happened[:16].replace('T', ' ')} UTC")
+
+    testable = [r for r in measurement.results if r.verdict != TOO_FEW]
+    if not testable:
+        before = max((r.n_before for r in measurement.results), default=0)
+        after = max((r.n_after for r in measurement.results), default=0)
+        print(f"    verdict cannot be measured — {before} session(s) before, {after} after, "
+              f"and a side needs {MIN_SIDE}")
+    else:
+        for r in sorted(testable, key=lambda r: (r.p_value if r.p_value is not None else 1)):
+            mark = {"moved": "→ moved", UNDERPOWERED: "  underpowered"}.get(
+                r.verdict, "  no verdict")
+            print(f"    {r.metric:<18}{_fmt(r.median_before or 0):>10} → "
+                  f"{_fmt(r.median_after or 0):<10} p={r.p_value:<8.3f}"
+                  f"n={r.n_before}/{r.n_after}  {mark}")
+        if not measurement.moved:
+            print("\n    nothing moved past the threshold. With these numbers that is the")
+            print("    expected result, not a disappointing one.")
+    for note in measurement.notes:
+        print(f"    ⚠️  {note}")
+
+
+def cmd_intervention(args) -> int:
+    conn = connect(args.db)
+    target = _target(conn, args.project)
+    if target is None:
+        return 1
+    project_root = str(target)
+
+    if args.action == "add":
+        happened = args.date or datetime.now(UTC).isoformat()
+        intervention_id = intervention_record(
+            conn, project_root, args.what, happened, kind=args.kind,
+            expectation=args.expect or "")
+        print(f"recorded #{intervention_id}: {args.what} ({happened[:16].replace('T', ' ')})")
+        print("measure it with `atlas intervention list`")
+        return 0
+
+    if args.action == "detect":
+        candidates = intervention_detect(conn, project_root)
+        if not candidates:
+            print("nothing detected — config snapshots and file times show no change")
+            print("inside the period the ingested sessions cover")
+            return 0
+        print(f"{len(candidates)} candidate change(s) — none recorded until you say so")
+        counted = conn.execute(
+            "SELECT started FROM sessions WHERE project_root IS ? AND kind = 'main'"
+            " AND started IS NOT NULL", (str(target),)).fetchall()
+        for c in candidates:
+            before = sum(1 for r in counted if r["started"] < c.happened)
+            print(f"\n  {c.happened[:16].replace('T', ' ')} UTC  {c.what}")
+            print(f"      kind {c.kind} · via {c.source}")
+            print(f"      {c.evidence}")
+            print(f"      sessions  {before} before · {len(counted) - before} after")
+        print("\nrecord one with:  atlas intervention add <project> "
+              '--what "..." --date <when>')
+        print(f"a verdict needs about {REACHABLE_AT} sessions either side — "
+              "recording one now is how the after-half starts accumulating")
+        return 0
+
+    rows = conn.execute(
+        "SELECT * FROM interventions WHERE project_root IS ? ORDER BY happened",
+        (project_root,)).fetchall()
+    if not rows:
+        print("no interventions recorded for this project")
+        print("`atlas intervention detect` proposes candidates from config and file times")
+        return 0
+    for row in rows:
+        measurement = intervention_measure(conn, dict(row))
+        _print_measurement(row["what"], measurement)
+        if row["expectation"]:
+            print(f"    hoped   {row['expectation']}")
+        if not args.no_save:
+            intervention_save(conn, measurement)
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="atlas", description="Measure how you work with Claude Code.")
     p.add_argument("--version", action="version", version=f"ai-atlas {__version__} (parser v{PARSER_VERSION})")
@@ -410,6 +496,17 @@ def main(argv=None) -> int:
     pt.add_argument("--json", action="store_true", help="every pattern with every occurrence")
     pt.add_argument("--no-save", action="store_true", help="do not store the run")
     pt.set_defaults(fn=cmd_patterns)
+
+    iv = sub.add_parser("intervention",
+                        help="record a change to how you work, and measure whether it helped")
+    iv.add_argument("action", choices=("list", "add", "detect"), nargs="?", default="list")
+    iv.add_argument("project", nargs="?", help="project directory, or part of a known path")
+    iv.add_argument("--what", help="what changed, in your words")
+    iv.add_argument("--date", help="when it took effect (ISO); default now")
+    iv.add_argument("--kind", default="other", choices=INTERVENTION_KINDS)
+    iv.add_argument("--expect", help="what you were hoping for — recorded, never scored")
+    iv.add_argument("--no-save", action="store_true", help="do not store the measurement")
+    iv.set_defaults(fn=cmd_intervention)
 
     args = p.parse_args(argv)
     return args.fn(args)

@@ -7,7 +7,7 @@
 
 ## What the tests are for
 
-Eighty-eight tests. The ones that matter most are regressions for wrong answers
+One hundred and two tests. The ones that matter most are regressions for wrong answers
 found by running against **real data** rather than by reasoning about it:
 
 - `test_project_scope_is_not_missed_by_a_user_scope_read` — the false claim that
@@ -27,6 +27,11 @@ and exposed a genuine defect: the watermark's prefix hash covered a fixed 4 KB
 window, so any file smaller than that invalidated its own watermark on every
 append. That is the whole argument for writing the acceptance test before
 believing the implementation.
+
+`test_the_reachable_floor_comes_out_of_the_sample_size` is the one to read
+first. It is not a regression: it is the finding that eight sessions either side
+are needed before an intervention verdict is reachable at all, pinned as a test
+so that nobody quietly lowers the bar later.
 
 The pattern tests are mostly about *not* finding things: a coincidence, a
 repetition, a habit that happened once. `test_calls_that_merely_co_occur_are_not_a_pattern`

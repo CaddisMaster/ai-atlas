@@ -18,6 +18,7 @@ or when reversing it would break something non-obvious.
 | [0005](0005-offline-by-default-github-is-opt-in.md) | Offline by default, GitHub opt-in | The promise is about the data, not the socket |
 | [0006](0006-a-norm-needs-a-floor.md) | A norm needs a floor | Three sessions is arithmetic, not a normal |
 | [0007](0007-lift-not-frequency.md) | Lift, not frequency | The most common pair in the corpus means nothing |
+| [0008](0008-an-experiment-that-could-not-have-worked.md) | "Could not have found anything" ≠ "found nothing" | Three against three cannot beat p = 0.2, whatever happened |
 
 ## Format
 
